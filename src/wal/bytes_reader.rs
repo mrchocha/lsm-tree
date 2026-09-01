@@ -1,7 +1,5 @@
 use std::fmt::Error;
 
-use crate::wal::wal_record;
-
 #[derive(Debug)]
 pub enum ByteReaderError {
     InvalidData,

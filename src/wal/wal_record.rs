@@ -13,6 +13,7 @@ impl From<ByteReaderError> for WalError {
     }
 }
 
+#[derive(Clone)]
 pub enum OperationTypeEnum {
     INSERT = 0,
     UPDATE,
@@ -39,29 +40,21 @@ pub struct WalRecord {
 }
 
 impl WalRecord {
-    pub fn to_bytes(self) -> Vec<u8> {
-        let team_bytes = self.term.to_be_bytes().to_vec();
-        let id_bytes = self.id.to_be_bytes().to_vec();
-        let op_type_bytes = self.op_type as u8;
-        let key_bytes = self.key.as_bytes().to_vec();
-        let val_bytes = self.value.as_bytes().to_vec();
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let key_bytes = self.key.as_bytes();
+        let value_bytes = self.value.as_bytes();
 
-        let key_len = key_bytes.len().to_be_bytes().to_vec();
-        let val_len = val_bytes.len().to_be_bytes().to_vec();
+        let mut bytes = Vec::with_capacity(4 + 4 + 1 + 8 + 8 + key_bytes.len() + value_bytes.len());
 
-        let bytes_rep_arr = [
-            team_bytes,
-            id_bytes,
-            vec![op_type_bytes],
-            key_len,
-            val_len,
-            key_bytes,
-            val_bytes,
-        ];
+        bytes.extend_from_slice(&self.term.to_be_bytes());
+        bytes.extend_from_slice(&self.id.to_be_bytes());
+        bytes.push(self.op_type.clone() as u8);
+        bytes.extend_from_slice(&key_bytes.len().to_be_bytes());
+        bytes.extend_from_slice(&value_bytes.len().to_be_bytes());
+        bytes.extend_from_slice(key_bytes);
+        bytes.extend_from_slice(value_bytes);
 
-        let bytes_rep = bytes_rep_arr.concat();
-
-        bytes_rep
+        bytes
     }
 
     pub fn checksum(bytes: &[u8]) -> u32 {
