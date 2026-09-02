@@ -1,5 +1,4 @@
 use crate::wal::bytes_reader::{ByteReader, ByteReaderError};
-use std::error::Error;
 
 #[derive(Debug)]
 pub enum WalError {

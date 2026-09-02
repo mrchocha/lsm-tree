@@ -1,3 +1,4 @@
+mod mem_table;
 mod wal;
 
 fn main() {

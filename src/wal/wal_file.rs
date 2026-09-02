@@ -9,8 +9,9 @@ pub struct WalFileHeader {
 pub struct WalFile {
     name: String,
     path: String,
-    size: u64,
     header: WalFileHeader,
+
+    file: File,
 }
 
 impl WalFile {
@@ -34,14 +35,18 @@ impl WalFile {
             .ok_or("filename is not valid UTF-8")?
             .to_string();
 
-        let metadata = file.metadata()?;
-        let file_size = metadata.len();
-
         Ok(WalFile {
             name,
             path: str_path.to_string(),
-            size: file_size,
             header,
+            file,
         })
+    }
+
+    pub fn get_size(&self) -> Result<u64, Box<dyn std::error::Error>> {
+        let metadata = self.file.metadata()?;
+        let file_size = metadata.len();
+
+        Ok(file_size)
     }
 }
