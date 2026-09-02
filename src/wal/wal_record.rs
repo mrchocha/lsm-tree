@@ -32,7 +32,7 @@ impl OperationTypeEnum {
 
 pub struct WalRecord {
     pub term: u32,
-    pub id: u32,
+    pub index: u32,
     pub op_type: OperationTypeEnum,
     pub key: String,
     pub value: String,
@@ -46,7 +46,7 @@ impl WalRecord {
         let mut bytes = Vec::with_capacity(4 + 4 + 1 + 8 + 8 + key_bytes.len() + value_bytes.len());
 
         bytes.extend_from_slice(&self.term.to_be_bytes());
-        bytes.extend_from_slice(&self.id.to_be_bytes());
+        bytes.extend_from_slice(&self.index.to_be_bytes());
         bytes.push(self.op_type.clone() as u8);
         bytes.extend_from_slice(&key_bytes.len().to_be_bytes());
         bytes.extend_from_slice(&value_bytes.len().to_be_bytes());
@@ -67,7 +67,7 @@ impl WalRecord {
         let mut breader = ByteReader::new(bytes);
 
         let term = breader.read_u32()?;
-        let id = breader.read_u32()?;
+        let index = breader.read_u32()?;
         let op_type = OperationTypeEnum::from_u8(breader.read_u8()?)?;
         let key_len = breader.read_usize()?;
         let val_len = breader.read_usize()?;
@@ -77,7 +77,7 @@ impl WalRecord {
 
         Ok(WalRecord {
             term,
-            id,
+            index,
             op_type,
             key,
             value,

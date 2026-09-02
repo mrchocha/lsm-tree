@@ -1,20 +1,59 @@
+use crate::wal::wal_record::{self, WalRecord};
 use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::io::{BufReader, Read};
 use std::path::Path;
+use std::path::PathBuf;
+
+const WAL_FILE_PATH: &str = "./wal";
 
 pub struct WalFileHeader {
-    seq_no: u32,
+    pub seq_no: u32,
+}
+
+impl WalFileHeader {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(4);
+
+        bytes.extend_from_slice(&self.seq_no.to_be_bytes());
+
+        bytes
+    }
 }
 
 pub struct WalFile {
-    name: String,
-    path: String,
-    header: WalFileHeader,
+    pub name: String,
+    pub path: PathBuf,
+    pub header: WalFileHeader,
 
     file: File,
 }
 
 impl WalFile {
+    pub fn create(seq_no: u32) -> Result<Self, Box<dyn std::error::Error>> {
+        let name = format!("{seq_no}_data.wal");
+        let path = PathBuf::from(WAL_FILE_PATH).join(&name);
+
+        let header = WalFileHeader { seq_no };
+
+        let mut file = OpenOptions::new()
+            .read(true)
+            .append(true)
+            .create(true)
+            .create_new(true)
+            .open(&path)?;
+
+        file.write_all(&header.to_bytes())?;
+
+        Ok(Self {
+            name,
+            path,
+            header,
+            file,
+        })
+    }
+
     pub fn from_path(str_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let path = Path::new(str_path);
 
@@ -37,7 +76,7 @@ impl WalFile {
 
         Ok(WalFile {
             name,
-            path: str_path.to_string(),
+            path: path.to_path_buf(),
             header,
             file,
         })
@@ -49,4 +88,6 @@ impl WalFile {
 
         Ok(file_size)
     }
+
+    pub fn append(&mut self, wal_record: &WalRecord) {}
 }
