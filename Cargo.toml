@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 crc = "3.2.1"
+xxhash-rust = { version = "0.8", features = ["xxh64"] }

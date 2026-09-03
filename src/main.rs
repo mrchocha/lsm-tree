@@ -1,3 +1,4 @@
+mod bloom_filter;
 mod mem_table;
 mod storage;
 mod wal;
