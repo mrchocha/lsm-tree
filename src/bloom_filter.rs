@@ -34,8 +34,8 @@ impl BloomFilter {
         indices
     }
 
-    pub fn add(&mut self, key: String) {
-        for index in self.hashes(&key) {
+    pub fn add(&mut self, key: &str) {
+        for index in self.hashes(key) {
             self.bit_arr.insert(index as usize, true);
         }
     }
