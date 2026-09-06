@@ -1,18 +1,23 @@
+use crate::{
+    mem_table::btree_mem_table::BTreeMemTable,
+    storage::{Storage, StorageOptions},
+};
+
 mod bloom_filter;
 mod mem_table;
 mod storage;
 mod wal;
 
 fn main() {
-    let wal_record = wal::wal_record::WalRecord {
-        term: 1,
-        index: 1,
-        op_type: wal::wal_record::OperationTypeEnum::INSERT,
-        key: "name".to_string(),
-        value: "rahul".to_string(),
+    let options = &StorageOptions {
+        wal_file_path: "./wal".to_string(),
     };
 
-    let byt = wal_record.to_bytes();
-    let val = wal::wal_record::WalRecord::from_bytes(&byt);
+    let btree_mem_table = Box::new(BTreeMemTable::new());
+    let mut storage = Storage::new(options, btree_mem_table).expect("Error while init storage");
+
+    storage
+        .put("Rahul".to_string(), "Ahir".to_string())
+        .expect("Error while inserting key");
     println!("Hello, world! ");
 }

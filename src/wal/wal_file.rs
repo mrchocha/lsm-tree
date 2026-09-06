@@ -39,9 +39,9 @@ impl WalFile {
 
         let mut file = OpenOptions::new()
             .read(true)
+            .write(true)
             .append(true)
             .create(true)
-            .create_new(true)
             .open(&path)?;
 
         file.write_all(&header.to_bytes())?;
@@ -57,7 +57,12 @@ impl WalFile {
     pub fn from_path(str_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let path = Path::new(str_path);
 
-        let file = File::open(path)?;
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .append(true)
+            .open(path)?;
+
         let mut reader = BufReader::new(&file);
 
         let mut buffer = [0u8; 4];
@@ -89,5 +94,15 @@ impl WalFile {
         Ok(file_size)
     }
 
-    pub fn append(&mut self, wal_record: &WalRecord) {}
+    pub fn append(&mut self, wal_record: &WalRecord) -> Result<(), Box<dyn std::error::Error>> {
+        self.file.write_all(&wal_record.to_bytes())?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_create() {}
 }

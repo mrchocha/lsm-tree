@@ -1,4 +1,4 @@
-mod btree_mem_table;
+pub(crate) mod btree_mem_table;
 
 pub struct KeyValue {
     pub key: String,

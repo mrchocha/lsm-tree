@@ -1,7 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, RwLock},
-};
+use std::{collections::BTreeMap, sync::RwLock};
 
 use crate::mem_table::{KeyValue, MemTable};
 
