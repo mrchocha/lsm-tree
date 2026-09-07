@@ -1,35 +1,41 @@
-use std::{fs, io::Error};
+use std::fs;
 
-use crate::wal::{
-    wal_file::WalFile,
-    wal_record::{WalError, WalRecord},
+use crate::{
+    storage::StorageOptions,
+    wal::{wal_file::WalFile, wal_record::WalRecord},
 };
 
-pub struct WalManager {
+pub struct WalManager<'a> {
+    options: &'a StorageOptions,
+
     current_file: Option<WalFile>,
+
+    reusable_files: Vec<WalFile>,
     max_wal_file_seq_no: u32,
 }
 
-impl WalManager {
-    pub fn new() -> Self {
-        WalManager {
+impl<'a> WalManager<'a> {
+    pub fn new_with_latest_file(
+        options: &'a StorageOptions,
+    ) -> Result<WalManager<'a>, Box<dyn std::error::Error>> {
+        let mut wal_manager = WalManager {
+            options,
             max_wal_file_seq_no: 0,
             current_file: None,
-        }
-    }
+            reusable_files: Vec::new(),
+        };
 
-    pub fn new_with_latest_file() -> Result<WalManager, Box<dyn std::error::Error>> {
-        let mut file = WalManager::new().get_latest_file()?;
+        let mut file = wal_manager.get_latest_file()?;
         if file.is_none() {
             file = Some(WalFile::create(1)?);
         }
 
         let wal_file = file.expect("Wal file not found");
 
-        Ok(WalManager {
-            max_wal_file_seq_no: wal_file.header.seq_no,
-            current_file: Some(wal_file),
-        })
+        wal_manager.max_wal_file_seq_no = wal_file.header.seq_no;
+        wal_manager.current_file = Some(wal_file);
+
+        Ok(wal_manager)
     }
 
     pub fn write(&mut self, wal_record: &WalRecord) -> Result<(), Box<dyn std::error::Error>> {
@@ -67,8 +73,9 @@ impl WalManager {
 
     fn list_files(&self) -> Result<Vec<WalFile>, Box<dyn std::error::Error>> {
         let mut wal_files = Vec::new();
+        let path = self.options.wal_file_path.clone();
 
-        for entry in fs::read_dir("./wal")? {
+        for entry in fs::read_dir(path)? {
             let path = entry?.path();
 
             if !path.extension().is_some_and(|ext| ext == "wal") {

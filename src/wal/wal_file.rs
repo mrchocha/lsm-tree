@@ -3,6 +3,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::io::{BufReader, Read};
+use std::io::{Seek, SeekFrom};
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -92,6 +93,17 @@ impl WalFile {
         let file_size = metadata.len();
 
         Ok(file_size)
+    }
+
+    pub fn reset(&mut self, seq_no: u32) -> Result<(), Box<dyn std::error::Error>> {
+        self.file.set_len(0)?;
+
+        self.file.seek(SeekFrom::Start(0))?;
+
+        self.header = WalFileHeader { seq_no };
+        self.file.write_all(&self.header.to_bytes())?;
+
+        Ok(())
     }
 
     pub fn append(&mut self, wal_record: &WalRecord) -> Result<(), Box<dyn std::error::Error>> {

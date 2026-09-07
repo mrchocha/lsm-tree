@@ -18,7 +18,7 @@ pub struct Storage<'a> {
     term: u32,
     index: u32,
 
-    wal_manager: WalManager,
+    wal_manager: WalManager<'a>,
     mem_table: Box<dyn MemTable>,
 }
 
@@ -27,7 +27,7 @@ impl<'a> Storage<'a> {
         options: &'a StorageOptions,
         mem_table: Box<dyn MemTable>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let wal_manager = WalManager::new_with_latest_file()?;
+        let wal_manager = WalManager::new_with_latest_file(options)?;
 
         Ok(Self {
             options,
