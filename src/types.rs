@@ -1,3 +1,5 @@
+use crate::bytes_reader::{ByteReader, ByteReaderError};
+
 pub struct KeyValue {
     pub key: String,
     pub value: String,
@@ -13,5 +15,12 @@ impl KeyValue {
         bin_arr.extend_from_slice(&self.value.as_bytes());
 
         bin_arr
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, ByteReaderError> {
+        let mut breader = ByteReader::new(bytes);
+        let key_val = breader.read_key_val()?;
+
+        Ok(key_val)
     }
 }

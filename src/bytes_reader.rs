@@ -1,5 +1,7 @@
 use std::fmt::Error;
 
+use crate::types::KeyValue;
+
 #[derive(Debug)]
 pub enum ByteReaderError {
     InvalidData,
@@ -84,5 +86,14 @@ impl<'a> ByteReader<'a> {
         self.position = end;
 
         String::from_utf8(bytes.to_vec()).map_err(|_| ByteReaderError::InvalidUtf8)
+    }
+
+    pub fn read_key_val(&mut self) -> Result<KeyValue, ByteReaderError> {
+        let key_len = self.read_usize()?;
+        let key = self.read_str(key_len)?;
+        let val_len = self.read_usize()?;
+        let value = self.read_str(val_len)?;
+
+        Ok(KeyValue { key, value })
     }
 }

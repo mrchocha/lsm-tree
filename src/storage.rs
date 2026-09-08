@@ -1,5 +1,6 @@
 use crate::{
     mem_table::MemTable,
+    types::KeyValue,
     wal::{
         wal_file,
         wal_manager::WalManager,
@@ -46,8 +47,10 @@ impl<'a> Storage<'a> {
             term: self.term,
             index: current_index,
             op_type: OperationTypeEnum::INSERT,
-            key: key.clone(),
-            value: value.clone(),
+            key_val: KeyValue {
+                key: key.clone(),
+                value: value.clone(),
+            },
         })?;
 
         self.mem_table.put(key, value);
@@ -69,8 +72,10 @@ impl<'a> Storage<'a> {
             term: self.term,
             index: current_index,
             op_type: OperationTypeEnum::DELETE,
-            key: key.clone(),
-            value: "".to_string(),
+            key_val: KeyValue {
+                key: key.clone(),
+                value: "".to_string(),
+            },
         })?;
 
         Ok(())

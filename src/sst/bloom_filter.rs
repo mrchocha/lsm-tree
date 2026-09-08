@@ -2,7 +2,7 @@ use xxhash_rust::xxh64::xxh64;
 pub struct BloomFilter {
     bit_size: u64,
     num_hash: u64,
-    bit_arr: Vec<bool>,
+    bit_arr: Vec<u8>,
 }
 
 impl BloomFilter {
@@ -24,7 +24,7 @@ impl BloomFilter {
         let mut indices = Vec::new();
 
         let hash_1 = xxh64(key.as_bytes(), 0);
-        let hash_2 = xxh64(key.as_bytes(), 0);
+        let hash_2 = xxh64(key.as_bytes(), 10);
 
         for i in 0..self.num_hash {
             let position = (hash_1 + i * hash_2) % (self.bit_size);
@@ -36,18 +36,26 @@ impl BloomFilter {
 
     pub fn add(&mut self, key: &str) {
         for index in self.hashes(key) {
-            self.bit_arr.insert(index as usize, true);
+            self.bit_arr.insert(index as usize, 1);
         }
     }
 
-    pub fn is_present(self, key: &str) -> bool {
+    pub fn is_present(&self, key: &str) -> bool {
         for index in self.hashes(key) {
             if let Some(data) = self.bit_arr.get(index as usize)
-                && *data == false
+                && *data == 0
             {
                 return false;
             }
         }
         return true;
+    }
+
+    pub fn to_binary(&self) -> Vec<u8> {
+        let mut binary = Vec::new();
+        binary.extend_from_slice(&self.num_hash.to_be_bytes());
+        binary.extend_from_slice(&self.bit_size.to_be_bytes());
+        binary.extend_from_slice(&self.bit_arr);
+        binary
     }
 }

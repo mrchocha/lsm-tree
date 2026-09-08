@@ -1,4 +1,7 @@
-use crate::wal::bytes_reader::{ByteReader, ByteReaderError};
+use crate::{
+    bytes_reader::{ByteReader, ByteReaderError},
+    types::KeyValue,
+};
 
 #[derive(Debug)]
 pub enum WalError {
@@ -34,24 +37,19 @@ pub struct WalRecord {
     pub term: u32,
     pub index: u32,
     pub op_type: OperationTypeEnum,
-    pub key: String,
-    pub value: String,
+    pub key_val: KeyValue,
 }
 
 impl WalRecord {
     pub fn to_bytes(&self) -> Vec<u8> {
-        let key_bytes = self.key.as_bytes();
-        let value_bytes = self.value.as_bytes();
+        let key_val_bytes = self.key_val.to_bytes();
 
-        let mut bytes = Vec::with_capacity(4 + 4 + 1 + 8 + 8 + key_bytes.len() + value_bytes.len());
+        let mut bytes = Vec::with_capacity(4 + 4 + 1 + key_val_bytes.len());
 
         bytes.extend_from_slice(&self.term.to_be_bytes());
         bytes.extend_from_slice(&self.index.to_be_bytes());
         bytes.push(self.op_type.clone() as u8);
-        bytes.extend_from_slice(&key_bytes.len().to_be_bytes());
-        bytes.extend_from_slice(&value_bytes.len().to_be_bytes());
-        bytes.extend_from_slice(key_bytes);
-        bytes.extend_from_slice(value_bytes);
+        bytes.extend_from_slice(&key_val_bytes);
 
         bytes
     }
@@ -69,18 +67,13 @@ impl WalRecord {
         let term = breader.read_u32()?;
         let index = breader.read_u32()?;
         let op_type = OperationTypeEnum::from_u8(breader.read_u8()?)?;
-        let key_len = breader.read_usize()?;
-        let val_len = breader.read_usize()?;
-
-        let key = breader.read_str(key_len)?;
-        let value = breader.read_str(val_len)?;
+        let key_val = breader.read_key_val()?;
 
         Ok(WalRecord {
             term,
             index,
             op_type,
-            key,
-            value,
+            key_val,
         })
     }
 }

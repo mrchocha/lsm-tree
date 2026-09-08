@@ -3,6 +3,7 @@ use crate::{
     storage::{Storage, StorageOptions},
 };
 
+mod bytes_reader;
 mod mem_table;
 mod sst;
 mod storage;
