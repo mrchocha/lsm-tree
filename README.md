@@ -13,6 +13,7 @@ The goal of this project is to understand how modern storage engines use **WALs,
   * [ ] Skip list based
 * [x] Bloom filter
 * [ ] SSTable persistence
+  * [x] SST Block creation
 * [ ] SSTable merge / compaction
 * [ ] Delete / tombstone handling
 
