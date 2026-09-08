@@ -1,5 +1,5 @@
 use crate::{
-    mem_table::{KeyValue, MemTable},
+    mem_table::MemTable,
     wal::{
         wal_file,
         wal_manager::WalManager,

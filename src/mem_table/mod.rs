@@ -1,9 +1,6 @@
-pub(crate) mod btree_mem_table;
+use crate::types::KeyValue;
 
-pub struct KeyValue {
-    pub key: String,
-    pub value: String,
-}
+pub(crate) mod btree_mem_table;
 
 pub trait MemTable {
     fn put(&mut self, key: String, value: String);

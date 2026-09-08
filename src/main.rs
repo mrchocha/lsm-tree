@@ -3,9 +3,10 @@ use crate::{
     storage::{Storage, StorageOptions},
 };
 
-mod bloom_filter;
 mod mem_table;
+mod sst;
 mod storage;
+mod types;
 mod wal;
 
 fn main() {

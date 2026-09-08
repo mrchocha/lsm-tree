@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::RwLock};
 
-use crate::mem_table::{KeyValue, MemTable};
+use crate::{mem_table::MemTable, types::KeyValue};
 
 pub struct BTreeMemTable {
     store: RwLock<BTreeMap<Vec<u8>, Option<Vec<u8>>>>,
