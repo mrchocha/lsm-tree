@@ -27,42 +27,47 @@ pub struct SSTBuilder {
     mem_table: Box<dyn MemTable>,
     bloom_filter: BloomFilter,
     blocks: Vec<SSTBlock>,
-    index_no: u32,
 }
 
 impl SSTBuilder {
-    pub fn new(index_no: u32, mem_table: Box<dyn MemTable>) -> Self {
+    pub fn new_from_mem_table(mem_table: Box<dyn MemTable>) -> Self {
         let num_elems = mem_table.size() as u64;
 
         let mut bloom_filter = BloomFilter::new(num_elems, 0.1);
+        let mut blocks = Vec::new();
 
-        SSTBuilder {
-            index_no,
-            mem_table,
-            bloom_filter,
-            blocks: Vec::new(),
-        }
-    }
-
-    pub fn build(&mut self) {
         let mut sst_block = SSTBlock::new();
 
-        for (key, value) in self.mem_table.get_all_keys() {
-            self.bloom_filter.add(&key);
+        for (key, value) in mem_table.get_all_keys() {
+            bloom_filter.add(&key);
 
             let key_val = &KeyValue { key, value };
             if !sst_block.add(key_val) {
-                self.blocks.push(sst_block);
+                blocks.push(sst_block);
                 sst_block = SSTBlock::new();
                 sst_block.add(key_val);
             }
         }
 
-        self.blocks.push(sst_block);
+        blocks.push(sst_block);
+
+        SSTBuilder {
+            mem_table,
+            bloom_filter,
+            blocks,
+        }
     }
 
-    pub fn flush(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let file_name = format!("{0}_data.sst", self.index_no);
+    // pub fn new_from_sst_file(index_no: u32) -> Self {
+    //     Self {
+    //         mem_table: (),
+    //         bloom_filter: (),
+    //         blocks: (),
+    //     }
+    // }
+
+    pub fn flush(&self, index_no: u32) -> Result<(), Box<dyn std::error::Error>> {
+        let file_name = format!("{0}_data.sst", index_no);
         let path = PathBuf::from("./sst").join(&file_name);
 
         let mut file = OpenOptions::new()

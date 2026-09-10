@@ -12,6 +12,7 @@ const RESTART_INTERVAL: u32 = 16;
 /*
 SSTBlock Structure (4Kb) (best effort)
 -------------------------------------
+| block size.........................|
 | KVBinary (1)_______________________|
 | KVBinary (2)_______________________|
 | KVBinary (3)_______________________|
@@ -65,8 +66,10 @@ impl SSTBlock {
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bin_arr = Vec::new();
+        let total_size = self.binaries.len() + self.restart_offsets.len() * 8 + 8; // num_restart
+        let mut bin_arr = Vec::with_capacity(8 + total_size);
 
+        bin_arr.extend_from_slice(&total_size.to_be_bytes());
         bin_arr.extend_from_slice(&self.binaries);
 
         for offset in &self.restart_offsets {

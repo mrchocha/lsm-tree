@@ -52,7 +52,8 @@ impl BloomFilter {
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut binary = Vec::new();
+        let total_size = 8 + 8 + self.bit_arr.len();
+        let mut binary = Vec::with_capacity(total_size);
         binary.extend_from_slice(&self.num_hash.to_be_bytes());
         binary.extend_from_slice(&self.bit_size.to_be_bytes());
         binary.extend_from_slice(&self.bit_arr);

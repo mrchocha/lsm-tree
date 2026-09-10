@@ -84,9 +84,8 @@ impl<'a> Storage<'a> {
         let old_sst = std::mem::replace(&mut self.mem_table, Box::new(BTreeMemTable::new()));
         self.mem_table = Box::new(BTreeMemTable::new());
 
-        let mut sst_builder = SSTBuilder::new(1, old_sst);
-        sst_builder.build();
-        sst_builder.flush()?;
+        let mut sst_builder = SSTBuilder::new_from_mem_table(old_sst);
+        sst_builder.flush(1)?;
 
         Ok(())
     }
