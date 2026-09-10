@@ -20,11 +20,11 @@ impl BloomFilter {
         }
     }
 
-    fn hashes(&self, key: &str) -> Vec<u64> {
+    fn hashes(&self, key: &[u8]) -> Vec<u64> {
         let mut indices = Vec::new();
 
-        let hash_1 = xxh64(key.as_bytes(), 0);
-        let hash_2 = xxh64(key.as_bytes(), 10);
+        let hash_1 = xxh64(key, 0);
+        let hash_2 = xxh64(key, 10);
 
         for i in 0..self.num_hash {
             let position = (hash_1 + i * hash_2) % (self.bit_size);
@@ -34,13 +34,13 @@ impl BloomFilter {
         indices
     }
 
-    pub fn add(&mut self, key: &str) {
+    pub fn add(&mut self, key: &[u8]) {
         for index in self.hashes(key) {
             self.bit_arr.insert(index as usize, 1);
         }
     }
 
-    pub fn is_present(&self, key: &str) -> bool {
+    pub fn is_present(&self, key: &[u8]) -> bool {
         for index in self.hashes(key) {
             if let Some(data) = self.bit_arr.get(index as usize)
                 && *data == 0
@@ -51,7 +51,7 @@ impl BloomFilter {
         return true;
     }
 
-    pub fn to_binary(&self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         let mut binary = Vec::new();
         binary.extend_from_slice(&self.num_hash.to_be_bytes());
         binary.extend_from_slice(&self.bit_size.to_be_bytes());

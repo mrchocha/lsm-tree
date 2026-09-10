@@ -88,11 +88,31 @@ impl<'a> ByteReader<'a> {
         String::from_utf8(bytes.to_vec()).map_err(|_| ByteReaderError::InvalidUtf8)
     }
 
+    pub fn read_bytes_vec(&mut self, len: usize) -> Result<Vec<u8>, ByteReaderError> {
+        let end = self
+            .position
+            .checked_add(len)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        let bytes = self
+            .bytes
+            .get(self.position..end)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        self.position = end;
+
+        Ok(bytes.to_vec())
+    }
+
     pub fn read_key_val(&mut self) -> Result<KeyValue, ByteReaderError> {
         let key_len = self.read_usize()?;
-        let key = self.read_str(key_len)?;
+        let key = self.read_bytes_vec(key_len)?;
+
         let val_len = self.read_usize()?;
-        let value = self.read_str(val_len)?;
+        let mut value: Option<Vec<u8>> = None;
+        if val_len > 0 {
+            value = Some(self.read_bytes_vec(val_len)?);
+        }
 
         Ok(KeyValue { key, value })
     }

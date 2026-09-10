@@ -7,13 +7,14 @@ The goal of this project is to understand how modern storage engines use **WALs,
 ## Features
 
 * [x] WAL persistence
-* [ ] WAL file chunking / rotation
+  * [ ] WAL file chunking / rotation
 * [x] MemTable implementation
   * [X] Btree based
   * [ ] Skip list based
 * [x] Bloom filter
 * [ ] SSTable persistence
   * [x] SST Block creation
+  * [ ] SST Block compaction and decompaction 
 * [ ] SSTable merge / compaction
 * [ ] Delete / tombstone handling
 

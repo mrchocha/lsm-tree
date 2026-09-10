@@ -21,7 +21,7 @@ SSTBlock Structure (4Kb) (best effort)
 |..............crc check.............|
 */
 
-struct SSTBlock {
+pub struct SSTBlock {
     binaries: Vec<u8>,
 
     restart_offsets: Vec<usize>,
@@ -64,7 +64,7 @@ impl SSTBlock {
         return true;
     }
 
-    pub fn to_binary(&self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         let mut bin_arr = Vec::new();
 
         bin_arr.extend_from_slice(&self.binaries);

@@ -48,33 +48,33 @@ impl<'a> Storage<'a> {
             index: current_index,
             op_type: OperationTypeEnum::INSERT,
             key_val: KeyValue {
-                key: key.clone(),
-                value: value.clone(),
+                key: key.clone().into_bytes(),
+                value: Some(value.clone().into_bytes()),
             },
         })?;
 
-        self.mem_table.put(key, value);
+        self.mem_table.put(key.into_bytes(), value.into_bytes());
 
         Ok(())
     }
 
     fn get(&self, key: &str) -> Option<String> {
-        self.mem_table.get(key)
+        self.mem_table.get(key.as_bytes())
     }
 
     fn delete(&mut self, key: String) -> Result<(), Box<dyn std::error::Error>> {
         let current_index = self.index;
         self.index += 1;
 
-        self.mem_table.delete(key.clone());
+        self.mem_table.delete(key.as_bytes());
 
         self.wal_manager.write(&WalRecord {
             term: self.term,
             index: current_index,
             op_type: OperationTypeEnum::DELETE,
             key_val: KeyValue {
-                key: key.clone(),
-                value: "".to_string(),
+                key: key.into_bytes(),
+                value: None,
             },
         })?;
 
