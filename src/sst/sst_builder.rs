@@ -1,4 +1,8 @@
-use std::{fs::OpenOptions, io::Write, path::Path};
+use std::{
+    fs::OpenOptions,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use crate::{
     mem_table::MemTable,
@@ -6,6 +10,19 @@ use crate::{
     types::KeyValue,
 };
 
+/*
+SSTable Structure
+-------------------------------------
+| Block (1) _________________________|
+| Block (2) _________________________|
+| Block (3) _________________________|
+|....................................|
+|block indices u64 x N...............|
+|bloom filter........................|
+|block indices position..............|
+|bloom filter position...............|
+|other footer........................|
+*/
 pub struct SSTBuilder {
     mem_table: Box<dyn MemTable>,
     bloom_filter: BloomFilter,
@@ -43,16 +60,41 @@ impl SSTBuilder {
     }
 
     pub fn flush(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let path = Path::new("./sst");
+        let file_name = format!("{0}_data.sst", self.index_no);
+        let path = PathBuf::from("./sst").join(&file_name);
 
         let mut file = OpenOptions::new().write(true).append(true).open(path)?;
 
+        let mut index = 0 as usize;
+
+        let mut block_indices: Vec<[u8; 8]> = Vec::new();
+        let mut sst_indices: Vec<[u8; 8]> = Vec::new();
+
         for block in &self.blocks {
-            file.write_all(&block.to_bytes())?;
+            let bytes = &block.to_bytes();
+            index += bytes.len();
+            file.write_all(bytes)?;
+            block_indices.push(index.to_be_bytes());
         }
 
-        file.write_all(&self.bloom_filter.to_bytes())?;
+        // block index start position
+        sst_indices.push(index.to_be_bytes());
 
+        for block_index in block_indices {
+            file.write_all(&block_index)?;
+            index += 8;
+        }
+
+        // bloom filter stat index
+        sst_indices.push(index.to_be_bytes());
+
+        let bloom_filter_bytes = &self.bloom_filter.to_bytes();
+        file.write_all(bloom_filter_bytes)?;
+        index += bloom_filter_bytes.len();
+
+        for sst_index in sst_indices {
+            file.write_all(&sst_index)?;
+        }
         Ok(())
     }
 }

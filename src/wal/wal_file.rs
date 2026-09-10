@@ -33,7 +33,7 @@ pub struct WalFile {
 
 impl WalFile {
     pub fn create(seq_no: u32) -> Result<Self, Box<dyn std::error::Error>> {
-        let name = format!("{seq_no}_data.wal");
+        let name: String = format!("{seq_no}_data.wal");
         let path = PathBuf::from(WAL_FILE_PATH).join(&name);
 
         let header = WalFileHeader { seq_no };
