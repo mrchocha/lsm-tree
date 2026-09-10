@@ -4,12 +4,14 @@ use crate::{mem_table::MemTable, types::KeyValue};
 
 pub struct BTreeMemTable {
     store: RwLock<BTreeMap<Vec<u8>, Option<Vec<u8>>>>,
+    bytes_size: usize,
 }
 
 impl BTreeMemTable {
     pub fn new() -> Self {
         Self {
             store: RwLock::new(BTreeMap::new()),
+            bytes_size: 0,
         }
     }
 }
@@ -18,7 +20,12 @@ impl MemTable for BTreeMemTable {
     fn put(&mut self, key: Vec<u8>, value: Vec<u8>) {
         let mut store = self.store.write().unwrap();
 
-        store.insert(key, Some(value));
+        self.bytes_size += key.len() + value.len();
+        if let Some(prv_val) = store.insert(key, Some(value)) {
+            if let Some(non_empty_val) = prv_val {
+                self.bytes_size -= non_empty_val.len()
+            }
+        }
     }
 
     fn get(&self, key: &[u8]) -> Option<String> {
@@ -32,7 +39,11 @@ impl MemTable for BTreeMemTable {
     fn delete(&mut self, key: &[u8]) {
         let mut store = self.store.write().unwrap();
 
-        store.remove(key);
+        if let Some(prv_val) = store.insert(key.to_vec(), None) {
+            if let Some(non_empty_val) = prv_val {
+                self.bytes_size -= non_empty_val.len()
+            }
+        }
     }
 
     // fn scan(&self, start: String, end: String) -> Vec<KeyValue> {
@@ -70,5 +81,9 @@ impl MemTable for BTreeMemTable {
         }
 
         key_vals
+    }
+
+    fn get_bytes_size(&self) -> usize {
+        self.bytes_size
     }
 }

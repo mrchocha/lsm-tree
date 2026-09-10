@@ -57,13 +57,19 @@ impl SSTBuilder {
                 sst_block.add(key_val);
             }
         }
+
+        self.blocks.push(sst_block);
     }
 
     pub fn flush(&self) -> Result<(), Box<dyn std::error::Error>> {
         let file_name = format!("{0}_data.sst", self.index_no);
         let path = PathBuf::from("./sst").join(&file_name);
 
-        let mut file = OpenOptions::new().write(true).append(true).open(path)?;
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(path)?;
 
         let mut index = 0 as usize;
 

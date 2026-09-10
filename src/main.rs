@@ -1,5 +1,6 @@
 use crate::{
     mem_table::btree_mem_table::BTreeMemTable,
+    sst::sst_builder::SSTBuilder,
     storage::{Storage, StorageOptions},
 };
 
@@ -15,11 +16,12 @@ fn main() {
         wal_file_path: "./wal".to_string(),
     };
 
-    let btree_mem_table = Box::new(BTreeMemTable::new());
-    let mut storage = Storage::new(options, btree_mem_table).expect("Error while init storage");
+    let mut storage = Storage::new(options).expect("Error while init storage");
 
     storage
         .put("Rahul".to_string(), "Ahir".to_string())
         .expect("Error while inserting key");
+
+    storage.flush_sst().expect("error while flush");
     println!("Hello, world! ");
 }

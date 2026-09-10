@@ -1,5 +1,6 @@
 use crate::{
-    mem_table::MemTable,
+    mem_table::{MemTable, btree_mem_table::BTreeMemTable},
+    sst::sst_builder::SSTBuilder,
     types::KeyValue,
     wal::{
         wal_file,
@@ -24,11 +25,9 @@ pub struct Storage<'a> {
 }
 
 impl<'a> Storage<'a> {
-    pub fn new(
-        options: &'a StorageOptions,
-        mem_table: Box<dyn MemTable>,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(options: &'a StorageOptions) -> Result<Self, Box<dyn std::error::Error>> {
         let wal_manager = WalManager::new_with_latest_file(options)?;
+        let mem_table = Box::new(BTreeMemTable::new());
 
         Ok(Self {
             options,
@@ -58,11 +57,11 @@ impl<'a> Storage<'a> {
         Ok(())
     }
 
-    fn get(&self, key: &str) -> Option<String> {
+    pub fn get(&self, key: &str) -> Option<String> {
         self.mem_table.get(key.as_bytes())
     }
 
-    fn delete(&mut self, key: String) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn delete(&mut self, key: String) -> Result<(), Box<dyn std::error::Error>> {
         let current_index = self.index;
         self.index += 1;
 
@@ -77,6 +76,17 @@ impl<'a> Storage<'a> {
                 value: None,
             },
         })?;
+
+        Ok(())
+    }
+
+    pub fn flush_sst(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let old_sst = std::mem::replace(&mut self.mem_table, Box::new(BTreeMemTable::new()));
+        self.mem_table = Box::new(BTreeMemTable::new());
+
+        let mut sst_builder = SSTBuilder::new(1, old_sst);
+        sst_builder.build();
+        sst_builder.flush()?;
 
         Ok(())
     }
