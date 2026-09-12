@@ -18,6 +18,10 @@ impl<'a> ByteReader<'a> {
         Self { bytes, position: 0 }
     }
 
+    pub fn is_finished(&self) -> bool {
+        self.position == self.bytes.len()
+    }
+
     pub fn read_u32(&mut self) -> Result<u32, ByteReaderError> {
         let end = self
             .position
@@ -32,6 +36,24 @@ impl<'a> ByteReader<'a> {
         self.position = end;
 
         Ok(u32::from_be_bytes(
+            bytes.try_into().map_err(|_| ByteReaderError::InvalidData)?,
+        ))
+    }
+
+    pub fn read_u64(&mut self) -> Result<u64, ByteReaderError> {
+        let end = self
+            .position
+            .checked_add(4)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        let bytes = self
+            .bytes
+            .get(self.position..end)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        self.position = end;
+
+        Ok(u64::from_be_bytes(
             bytes.try_into().map_err(|_| ByteReaderError::InvalidData)?,
         ))
     }
@@ -115,5 +137,71 @@ impl<'a> ByteReader<'a> {
         }
 
         Ok(KeyValue { key, value })
+    }
+}
+
+pub struct FooterByteReader<'a> {
+    bytes: &'a [u8],
+    position: usize,
+}
+
+impl<'a> FooterByteReader<'a> {
+    pub fn new(bytes: &'a [u8]) -> Self {
+        Self {
+            bytes,
+            position: bytes.len(),
+        }
+    }
+
+    pub fn read_u32(&mut self) -> Result<u32, ByteReaderError> {
+        let start = self
+            .position
+            .checked_sub(4)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        let bytes = self
+            .bytes
+            .get(start..self.position)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        self.position = start;
+
+        Ok(u32::from_be_bytes(
+            bytes.try_into().map_err(|_| ByteReaderError::InvalidData)?,
+        ))
+    }
+
+    pub fn read_bytes_vec(&mut self, len: usize) -> Result<Vec<u8>, ByteReaderError> {
+        let start = self
+            .position
+            .checked_sub(len)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        let bytes = self
+            .bytes
+            .get(start..self.position)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        self.position = start;
+
+        Ok(bytes.to_vec())
+    }
+
+    pub fn read_usize(&mut self) -> Result<usize, ByteReaderError> {
+        let start = self
+            .position
+            .checked_sub(8)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        let bytes = self
+            .bytes
+            .get(start..self.position)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        self.position = start;
+
+        Ok(usize::from_be_bytes(
+            bytes.try_into().map_err(|_| ByteReaderError::InvalidData)?,
+        ))
     }
 }

@@ -5,8 +5,12 @@ use std::{
 };
 
 use crate::{
+    bytes_reader::{ByteReader, ByteReaderError, FooterByteReader},
     mem_table::MemTable,
-    sst::{block_builder::SSTBlock, bloom_filter::BloomFilter},
+    sst::{
+        block_builder::SSTBlock,
+        bloom_filter::{self, BloomFilter},
+    },
     types::KeyValue,
 };
 
@@ -19,12 +23,12 @@ SSTable Structure
 |....................................|
 |block indices u64 x N...............|
 |bloom filter........................|
-|block indices position..............|
-|bloom filter position...............|
-|other footer........................|
+|block indices start position........|
+|block indices end position..........|
+|bloom filter start position.........|
+|bloom filter end position...........|
 */
 pub struct SSTBuilder {
-    mem_table: Box<dyn MemTable>,
     bloom_filter: BloomFilter,
     blocks: Vec<SSTBlock>,
 }
@@ -52,19 +56,60 @@ impl SSTBuilder {
         blocks.push(sst_block);
 
         SSTBuilder {
-            mem_table,
             bloom_filter,
             blocks,
         }
     }
 
-    // pub fn new_from_sst_file(index_no: u32) -> Self {
-    //     Self {
-    //         mem_table: (),
-    //         bloom_filter: (),
-    //         blocks: (),
-    //     }
-    // }
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, ByteReaderError> {
+        let mut footer_btreader = FooterByteReader::new(bytes);
+
+        let block_bloom_filter_end = footer_btreader.read_u32()? as usize;
+        let block_bloom_filter_start = footer_btreader.read_u32()? as usize;
+
+        let block_index_end = footer_btreader.read_u32()? as usize;
+        let block_index_start = footer_btreader.read_u32()? as usize;
+
+        let bloom_filter_bytes = footer_btreader
+            .read_bytes_vec(block_bloom_filter_end - block_bloom_filter_start + 1)?;
+
+        let bloom_filter = BloomFilter::from_bytes(&bloom_filter_bytes)?;
+
+        let mut blockes_index_bytes = bytes
+            .get(block_index_start..block_index_end)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        let mut blockes_bytes = bytes
+            .get(0..block_index_start)
+            .ok_or(ByteReaderError::InvalidData)?;
+
+        let mut index_btreader = ByteReader::new(blockes_index_bytes);
+
+        let mut block_indices = Vec::new();
+        let mut blocks = Vec::new();
+
+        let mut prv_block_index = 0 as usize;
+
+        while !index_btreader.is_finished() {
+            let block_index = index_btreader.read_u32()? as usize;
+            block_indices.push(block_index);
+
+            let block = SSTBlock::from_bytes(
+                bytes
+                    .get(prv_block_index..block_index)
+                    .ok_or(ByteReaderError::InvalidData)?,
+            )?;
+
+            blocks.push(block);
+
+            prv_block_index = block_index
+        }
+
+        Ok(Self {
+            bloom_filter,
+            blocks,
+        })
+    }
 
     pub fn flush(&self, index_no: u32) -> Result<(), Box<dyn std::error::Error>> {
         let file_name = format!("{0}_data.sst", index_no);
@@ -95,13 +140,18 @@ impl SSTBuilder {
             file.write_all(&block_index)?;
             index += 8;
         }
+        // block index end position
+        sst_indices.push(index.to_be_bytes());
 
-        // bloom filter stat index
+        // bloom filter stat position
         sst_indices.push(index.to_be_bytes());
 
         let bloom_filter_bytes = &self.bloom_filter.to_bytes();
         file.write_all(bloom_filter_bytes)?;
         index += bloom_filter_bytes.len();
+
+        // bloom filter end position
+        sst_indices.push(index.to_be_bytes());
 
         for sst_index in sst_indices {
             file.write_all(&sst_index)?;

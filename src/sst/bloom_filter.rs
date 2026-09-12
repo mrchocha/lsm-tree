@@ -1,4 +1,6 @@
 use xxhash_rust::xxh64::xxh64;
+
+use crate::bytes_reader::{ByteReader, ByteReaderError};
 pub struct BloomFilter {
     bit_size: u64,
     num_hash: u64,
@@ -58,5 +60,18 @@ impl BloomFilter {
         binary.extend_from_slice(&self.bit_size.to_be_bytes());
         binary.extend_from_slice(&self.bit_arr);
         binary
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, ByteReaderError> {
+        let mut btreader = ByteReader::new(bytes);
+        let num_hash = btreader.read_u64()?;
+        let bit_size = btreader.read_u64()?;
+        let bit_arr = btreader.read_bytes_vec(bit_size as usize)?;
+
+        Ok(Self {
+            bit_size,
+            num_hash,
+            bit_arr,
+        })
     }
 }

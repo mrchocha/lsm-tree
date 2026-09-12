@@ -81,7 +81,7 @@ impl SSTBlock {
         bin_arr
     }
 
-    pub fn from_binary(bytes: &[u8]) -> Result<Self, ByteReaderError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, ByteReaderError> {
         let num_restart_bytes = &bytes[bytes.len() - 4..];
 
         let mut breader = ByteReader::new(num_restart_bytes);
@@ -98,7 +98,8 @@ impl SSTBlock {
             restart_offsets.push(reset_breader.read_usize()?);
         }
 
-        let binaries = bytes[..restart_start].to_vec();
+        // first 4 bytes are block size
+        let binaries = bytes[4..restart_start].to_vec();
 
         Ok(SSTBlock {
             binaries,
