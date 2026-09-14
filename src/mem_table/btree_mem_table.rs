@@ -28,12 +28,12 @@ impl MemTable for BTreeMemTable {
         }
     }
 
-    fn get(&self, key: &[u8]) -> Option<String> {
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         let store = self.store.read().unwrap();
 
         let value = store.get(key)?.as_ref()?;
 
-        String::from_utf8(value.clone()).ok()
+        Some(value.clone())
     }
 
     fn delete(&mut self, key: &[u8]) {

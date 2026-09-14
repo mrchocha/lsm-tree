@@ -58,7 +58,8 @@ impl<'a> Storage<'a> {
     }
 
     pub fn get(&self, key: &str) -> Option<String> {
-        self.mem_table.get(key.as_bytes())
+        let val = self.mem_table.get(key.as_bytes())?;
+        String::from_utf8(val).ok()
     }
 
     pub fn delete(&mut self, key: String) -> Result<(), Box<dyn std::error::Error>> {
