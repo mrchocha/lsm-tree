@@ -77,7 +77,7 @@ impl MemTable for BTreeMemTable {
         let store = self.store.read().unwrap();
 
         for (key, val) in store.iter() {
-            key_vals.push((key.to_owned(), val.to_owned()));
+            key_vals.push((key.clone(), val.clone()));
         }
 
         key_vals

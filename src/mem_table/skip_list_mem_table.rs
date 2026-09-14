@@ -1,4 +1,4 @@
-use crate::{mem_table::MemTable, types::KeyValue};
+use crate::mem_table::MemTable;
 use std::{cmp::Ordering, vec};
 
 const MAX_HEIGHT: usize = 20;
