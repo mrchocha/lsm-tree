@@ -214,3 +214,36 @@ impl MemTable for SkipListMemTable {
         self.total_bytes_size
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn test_skip_list() {
+        let mut skip_list = SkipListMemTable::new();
+
+        let key1 = "rahul".as_bytes();
+        let value1 = "chocha".as_bytes();
+
+        skip_list.put(key1.to_vec(), value1.to_vec());
+
+        assert_eq!(skip_list.get(key1), Some(value1.to_vec()));
+
+        let key2 = "rahul1".as_bytes();
+        let value2 = "chocha2".as_bytes();
+
+        skip_list.put(key2.to_vec(), value2.to_vec());
+
+        assert_eq!(skip_list.get(key2), Some(value2.to_vec()));
+
+        let key1 = "rahul".as_bytes();
+        let value1 = "chocha2".as_bytes();
+
+        skip_list.put(key1.to_vec(), value1.to_vec());
+
+        assert_eq!(skip_list.get(key1), Some(value1.to_vec()));
+    }
+}
