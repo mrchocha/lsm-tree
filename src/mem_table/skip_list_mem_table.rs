@@ -245,5 +245,7 @@ mod tests {
         skip_list.put(key1.to_vec(), value1.to_vec());
 
         assert_eq!(skip_list.get(key1), Some(value1.to_vec()));
+
+        assert_eq!(skip_list.get("rahul3".as_bytes()), None);
     }
 }
