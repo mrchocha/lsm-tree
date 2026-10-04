@@ -3,7 +3,6 @@ use crate::{
     sst::sst_builder::SSTBuilder,
     types::KeyValue,
     wal::{
-        wal_file,
         wal_manager::WalManager,
         wal_record::{OperationTypeEnum, WalRecord},
     },
@@ -85,7 +84,7 @@ impl<'a> Storage<'a> {
         let old_sst = std::mem::replace(&mut self.mem_table, Box::new(BTreeMemTable::new()));
         self.mem_table = Box::new(BTreeMemTable::new());
 
-        let mut sst_builder = SSTBuilder::new_from_mem_table(old_sst);
+        let sst_builder = SSTBuilder::new_from_mem_table(old_sst);
         sst_builder.flush(1)?;
 
         Ok(())

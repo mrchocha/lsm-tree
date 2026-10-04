@@ -1,3 +1,5 @@
+use std::println;
+
 use xxhash_rust::xxh64::xxh64;
 
 use crate::bytes_reader::{ByteReader, ByteReaderError};
@@ -10,10 +12,11 @@ pub struct BloomFilter {
 impl BloomFilter {
     pub fn new(num_elems: u64, acceptable_fp: f64) -> Self {
         let ln2 = 2.0_f64.ln();
-        let bit_size = ((num_elems as f64 * acceptable_fp.ln()) / ln2.powi(2)) as u64;
-        let num_hash = (bit_size / num_elems) * ln2 as u64;
+        let bit_size = (-(num_elems as f64 * acceptable_fp.ln()) / ln2.powi(2)).ceil() as u64;
 
-        let bit_arr = Vec::with_capacity(bit_size as usize);
+        let num_hash = ((bit_size as f64 / num_elems as f64) * ln2).ceil() as u64;
+
+        let bit_arr = vec![0u8; (bit_size as usize + 7) / 8];
 
         BloomFilter {
             bit_arr,
@@ -29,7 +32,9 @@ impl BloomFilter {
         let hash_2 = xxh64(key, 10);
 
         for i in 0..self.num_hash {
-            let position = (hash_1 + i * hash_2) % (self.bit_size);
+            let position = ((hash_1 % self.bit_size)
+                + ((i % self.bit_size) * (hash_2 % self.bit_size)) % self.bit_size)
+                % self.bit_size;
             indices.push(position);
         }
 
@@ -38,14 +43,20 @@ impl BloomFilter {
 
     pub fn add(&mut self, key: &[u8]) {
         for index in self.hashes(key) {
-            self.bit_arr.insert(index as usize, 1);
+            let byte_index = (index / 8) as usize;
+            let bit_offset = index % 8;
+
+            self.bit_arr[byte_index] |= 1 << bit_offset;
         }
     }
 
     pub fn is_present(&self, key: &[u8]) -> bool {
         for index in self.hashes(key) {
-            if let Some(data) = self.bit_arr.get(index as usize)
-                && *data == 0
+            let byte_index = (index / 8) as usize;
+            let bit_offset = index % 8;
+
+            if let Some(data) = self.bit_arr.get(byte_index as usize)
+                && *data & (1 << bit_offset) == 0
             {
                 return false;
             }
@@ -73,5 +84,32 @@ impl BloomFilter {
             num_hash,
             bit_arr,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{assert_eq, format, println};
+
+    use super::*;
+
+    #[test]
+    fn test_bloom() {
+        let mut b_filter = BloomFilter::new(10, 0.001);
+
+        for i in 0..10 {
+            let key = format!("key_{0}", i);
+            b_filter.add(key.as_bytes());
+        }
+
+        for i in 0..10 {
+            let key = format!("key_{0}", i);
+            assert_eq!(b_filter.is_present(key.as_bytes()), true);
+        }
+
+        for i in 11..20 {
+            let key = format!("key_{0}", i);
+            assert_eq!(b_filter.is_present(key.as_bytes()), false);
+        }
     }
 }

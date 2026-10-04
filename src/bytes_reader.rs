@@ -1,5 +1,3 @@
-use std::fmt::Error;
-
 use crate::types::KeyValue;
 
 #[derive(Debug)]

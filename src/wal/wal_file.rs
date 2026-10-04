@@ -1,4 +1,4 @@
-use crate::wal::wal_record::{self, WalRecord};
+use crate::wal::wal_record::WalRecord;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;

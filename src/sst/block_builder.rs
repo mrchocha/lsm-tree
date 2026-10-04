@@ -1,6 +1,3 @@
-use core::num;
-use std::vec;
-
 use crate::{
     bytes_reader::{ByteReader, ByteReaderError},
     types::KeyValue,
@@ -40,13 +37,15 @@ impl SSTBlock {
         }
     }
 
+    pub fn size(&self) -> usize {
+        self.binaries.len() + (self.num_restart as usize) * 4 + 4
+    }
+
     pub fn add(&mut self, key_val: &KeyValue) -> bool {
         let key_val_binaries = key_val.to_bytes();
         let should_restart = self.num_records % RESTART_INTERVAL == 0;
-        let new_num_restart = self.num_restart + should_restart as u32;
 
-        let new_length =
-            self.binaries.len() + key_val_binaries.len() + (new_num_restart as usize) * 4 + 4;
+        let new_length = self.size() + key_val_binaries.len() + (should_restart as usize) * 4;
 
         // block length should not exit MAX_BLOCK_SIZE (best effort)
         if new_length > MAX_BLOCK_SIZE {
@@ -107,5 +106,58 @@ impl SSTBlock {
             num_restart,
             num_records: 0,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn test_sst_block_add() {
+        let mut sst_block = SSTBlock::new();
+
+        for i in 0..10 {
+            let key_val = &KeyValue {
+                key: format!("key_{0}", i).as_bytes().to_vec(),
+                value: Some(format!("val_{0}", i).as_bytes().to_vec()),
+            };
+
+            assert_eq!(sst_block.add(key_val), true);
+            assert_eq!(sst_block.num_records, i + 1);
+            assert_eq!(sst_block.num_restart, 1);
+        }
+    }
+
+    #[test]
+    fn test_sst_block_add_full() {
+        let mut sst_block = SSTBlock::new();
+
+        let mut last_num_records = 0;
+
+        for i in 0..1000 {
+            let key_val = &KeyValue {
+                key: format!("key_{0}", i).as_bytes().to_vec(),
+                value: Some(format!("val_{0}", i).as_bytes().to_vec()),
+            };
+
+            let should_restart = sst_block.num_records % RESTART_INTERVAL == 0;
+            let new_length =
+                sst_block.size() + key_val.to_bytes().len() + (should_restart as usize) * 4;
+
+            let should_add = new_length < MAX_BLOCK_SIZE;
+
+            assert_eq!(sst_block.add(key_val), should_add);
+
+            if !should_add {
+                assert_eq!(sst_block.num_records, last_num_records);
+                break;
+            }
+
+            assert_eq!(sst_block.num_records, i + 1);
+            last_num_records = sst_block.num_records
+        }
     }
 }

@@ -1,16 +1,9 @@
-use std::{
-    fs::OpenOptions,
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::{fs::OpenOptions, io::Write, path::PathBuf};
 
 use crate::{
     bytes_reader::{ByteReader, ByteReaderError, FooterByteReader},
     mem_table::MemTable,
-    sst::{
-        block_builder::SSTBlock,
-        bloom_filter::{self, BloomFilter},
-    },
+    sst::{block_builder::SSTBlock, bloom_filter::BloomFilter},
     types::KeyValue,
 };
 
@@ -75,11 +68,11 @@ impl SSTBuilder {
 
         let bloom_filter = BloomFilter::from_bytes(&bloom_filter_bytes)?;
 
-        let mut blockes_index_bytes = bytes
+        let blockes_index_bytes = bytes
             .get(block_index_start..block_index_end)
             .ok_or(ByteReaderError::InvalidData)?;
 
-        let mut blockes_bytes = bytes
+        let blockes_bytes = bytes
             .get(0..block_index_start)
             .ok_or(ByteReaderError::InvalidData)?;
 
