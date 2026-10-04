@@ -1,16 +1,19 @@
 use crate::{
     mem_table::{MemTable, btree_mem_table::BTreeMemTable},
-    sst::sst_builder::SSTBuilder,
+    sst::sst_manager::{self, SSTManager, SSTOptions},
     types::KeyValue,
     wal::{
-        wal_manager::WalManager,
+        wal_manager::{WalManager, WalOptions},
         wal_record::{OperationTypeEnum, WalRecord},
     },
 };
 
 pub struct StorageOptions {
     /* WAL file options */
-    pub wal_file_path: String,
+    pub wal_options: WalOptions,
+
+    /* WAL file options */
+    pub sst_options: SSTOptions,
 }
 
 pub struct Storage<'a> {
@@ -20,12 +23,18 @@ pub struct Storage<'a> {
     index: u32,
 
     wal_manager: WalManager<'a>,
+    sst_manager: SSTManager<'a>,
+
     mem_table: Box<dyn MemTable>,
+
+    immutable_mem_tables: Vec<Box<dyn MemTable>>,
 }
 
 impl<'a> Storage<'a> {
     pub fn new(options: &'a StorageOptions) -> Result<Self, Box<dyn std::error::Error>> {
-        let wal_manager = WalManager::new_with_latest_file(options)?;
+        let wal_manager = WalManager::new(&options.wal_options)?;
+        let sst_manager = SSTManager::new(&options.sst_options);
+
         let mem_table = Box::new(BTreeMemTable::new());
 
         Ok(Self {
@@ -33,7 +42,9 @@ impl<'a> Storage<'a> {
             term: 0,
             index: 0,
             wal_manager,
+            sst_manager,
             mem_table,
+            immutable_mem_tables: Vec::new(),
         })
     }
 
@@ -80,12 +91,11 @@ impl<'a> Storage<'a> {
         Ok(())
     }
 
-    pub fn flush_sst(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn flush(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let old_sst = std::mem::replace(&mut self.mem_table, Box::new(BTreeMemTable::new()));
         self.mem_table = Box::new(BTreeMemTable::new());
 
-        let sst_builder = SSTBuilder::new_from_mem_table(old_sst);
-        sst_builder.flush(1)?;
+        self.sst_manager.flush(old_sst)?;
 
         Ok(())
     }

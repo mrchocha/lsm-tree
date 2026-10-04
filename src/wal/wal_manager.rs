@@ -5,55 +5,62 @@ use crate::{
     wal::{wal_file::WalFile, wal_record::WalRecord},
 };
 
-pub struct WalManager<'a> {
-    options: &'a StorageOptions,
+pub struct WalOptions {
+    pub file_path: String,
+    pub max_file_size: usize,
+}
 
-    current_file: Option<WalFile>,
+pub struct WalManager<'a> {
+    options: &'a WalOptions,
+
+    current_file: WalFile,
 
     reusable_files: Vec<WalFile>,
     max_wal_file_seq_no: u32,
 }
 
 impl<'a> WalManager<'a> {
-    pub fn new_with_latest_file(
-        options: &'a StorageOptions,
-    ) -> Result<WalManager<'a>, Box<dyn std::error::Error>> {
-        let mut wal_manager = WalManager {
-            options,
-            max_wal_file_seq_no: 0,
-            current_file: None,
-            reusable_files: Vec::new(),
-        };
-
-        let mut file = wal_manager.get_latest_file()?;
+    pub fn new(options: &'a WalOptions) -> Result<WalManager<'a>, Box<dyn std::error::Error>> {
+        let mut file = Self::get_latest_file(options)?;
         if file.is_none() {
-            file = Some(WalFile::create(1)?);
+            file = Some(WalFile::create(options, 1)?);
         }
 
         let wal_file = file.expect("Wal file not found");
 
-        wal_manager.max_wal_file_seq_no = wal_file.header.seq_no;
-        wal_manager.current_file = Some(wal_file);
-
-        Ok(wal_manager)
+        Ok(WalManager {
+            options,
+            max_wal_file_seq_no: wal_file.header.seq_no,
+            current_file: wal_file,
+            reusable_files: Vec::new(),
+        })
     }
 
-    pub fn write(&mut self, wal_record: &WalRecord) -> Result<(), Box<dyn std::error::Error>> {
-        if self.current_file.is_none() {
-            self.max_wal_file_seq_no += 1;
-            self.current_file = Some(WalFile::create(self.max_wal_file_seq_no)?);
-        }
+    fn advance_wal_file(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        self.max_wal_file_seq_no += 1;
+        let file = WalFile::create(self.options, self.max_wal_file_seq_no)?;
 
-        if let Some(active_wal_file) = self.current_file.as_mut() {
-            active_wal_file.append(wal_record)?;
-        }
+        self.current_file = file;
 
         Ok(())
     }
 
-    fn get_latest_file(&self) -> Result<Option<WalFile>, Box<dyn std::error::Error>> {
+    pub fn write(&mut self, wal_record: &WalRecord) -> Result<(), Box<dyn std::error::Error>> {
+        let curr_wal_file_size = self.current_file.get_size()?;
+        if curr_wal_file_size as usize >= self.options.max_file_size {
+            self.advance_wal_file()?
+        }
+
+        self.current_file.append(wal_record)?;
+
+        Ok(())
+    }
+
+    fn get_latest_file(
+        options: &WalOptions,
+    ) -> Result<Option<WalFile>, Box<dyn std::error::Error>> {
         let mut latest_wal_file: Option<WalFile> = None;
-        let wal_files: Vec<WalFile> = self.list_files()?;
+        let wal_files: Vec<WalFile> = Self::list_files(options)?;
 
         for wal_file in wal_files {
             if latest_wal_file
@@ -71,9 +78,9 @@ impl<'a> WalManager<'a> {
         Vec::new()
     }
 
-    fn list_files(&self) -> Result<Vec<WalFile>, Box<dyn std::error::Error>> {
+    fn list_files(options: &WalOptions) -> Result<Vec<WalFile>, Box<dyn std::error::Error>> {
         let mut wal_files = Vec::new();
-        let path = self.options.wal_file_path.clone();
+        let path = options.file_path.clone();
 
         for entry in fs::read_dir(path)? {
             let path = entry?.path();

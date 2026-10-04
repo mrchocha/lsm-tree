@@ -3,7 +3,7 @@ use std::{fs::OpenOptions, io::Write, path::PathBuf};
 use crate::{
     bytes_reader::{ByteReader, ByteReaderError, FooterByteReader},
     mem_table::MemTable,
-    sst::{block_builder::SSTBlock, bloom_filter::BloomFilter},
+    sst::{block_builder::SSTBlock, bloom_filter::BloomFilter, sst_manager::SSTOptions},
     types::KeyValue,
 };
 
@@ -21,13 +21,16 @@ SSTable Structure
 |bloom filter start position.........|
 |bloom filter end position...........|
 */
+
 pub struct SSTBuilder {
+    seq_no: u32,
+
     bloom_filter: BloomFilter,
     blocks: Vec<SSTBlock>,
 }
 
 impl SSTBuilder {
-    pub fn new_from_mem_table(mem_table: Box<dyn MemTable>) -> Self {
+    pub fn new(mem_table: Box<dyn MemTable>, seq_no: u32) -> Self {
         let num_elems = mem_table.size() as u64;
 
         let mut bloom_filter = BloomFilter::new(num_elems, 0.1);
@@ -48,7 +51,8 @@ impl SSTBuilder {
 
         blocks.push(sst_block);
 
-        SSTBuilder {
+        Self {
+            seq_no,
             bloom_filter,
             blocks,
         }
@@ -101,12 +105,13 @@ impl SSTBuilder {
         Ok(Self {
             bloom_filter,
             blocks,
+            seq_no: 1,
         })
     }
 
-    pub fn flush(&self, index_no: u32) -> Result<(), Box<dyn std::error::Error>> {
-        let file_name = format!("{0}_data.sst", index_no);
-        let path = PathBuf::from("./sst").join(&file_name);
+    pub fn flush(&self, options: &SSTOptions) -> Result<(), Box<dyn std::error::Error>> {
+        let file_name = format!("{:020}.sst", self.seq_no);
+        let path = PathBuf::from(options.file_path.clone()).join(&file_name);
 
         let mut file = OpenOptions::new()
             .create(true)

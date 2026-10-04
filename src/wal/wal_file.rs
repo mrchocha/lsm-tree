@@ -1,3 +1,4 @@
+use crate::wal::wal_manager::WalOptions;
 use crate::wal::wal_record::WalRecord;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -6,8 +7,6 @@ use std::io::{BufReader, Read};
 use std::io::{Seek, SeekFrom};
 use std::path::Path;
 use std::path::PathBuf;
-
-const WAL_FILE_PATH: &str = "./wal";
 
 pub struct WalFileHeader {
     pub seq_no: u32,
@@ -32,9 +31,9 @@ pub struct WalFile {
 }
 
 impl WalFile {
-    pub fn create(seq_no: u32) -> Result<Self, Box<dyn std::error::Error>> {
-        let name: String = format!("{seq_no}_data.wal");
-        let path = PathBuf::from(WAL_FILE_PATH).join(&name);
+    pub fn create(options: &WalOptions, seq_no: u32) -> Result<Self, Box<dyn std::error::Error>> {
+        let name: String = format!("{:020}.wal", seq_no);
+        let path = PathBuf::from(options.file_path.clone()).join(&name);
 
         let header = WalFileHeader { seq_no };
 

@@ -1,3 +1,5 @@
 /target
-/wal
-/sst
+/test/wal
+/test/sst
+/data/wal
+/data/sst
