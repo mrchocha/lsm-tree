@@ -1,12 +1,45 @@
+use std::io;
+
 use crate::{
     mem_table::{MemTable, btree_mem_table::BTreeMemTable},
     sst::sst_manager::{self, SSTManager, SSTOptions},
     types::KeyValue,
     wal::{
         wal_manager::{WalManager, WalOptions},
-        wal_record::{OperationTypeEnum, WalRecord},
+        wal_record::{OperationTypeEnum, WalError, WalRecord},
     },
 };
+
+#[derive(Debug)]
+pub enum StoreError {
+    WalError(WalError),
+    IoError(io::Error),
+    Message(String),
+    Other(Box<dyn std::error::Error>),
+}
+
+impl From<WalError> for StoreError {
+    fn from(err: WalError) -> Self {
+        StoreError::WalError(err)
+    }
+}
+
+impl From<io::Error> for StoreError {
+    fn from(err: io::Error) -> Self {
+        StoreError::IoError(err)
+    }
+}
+
+impl From<&str> for StoreError {
+    fn from(err: &str) -> Self {
+        StoreError::Message(err.to_string())
+    }
+}
+impl From<Box<dyn std::error::Error>> for StoreError {
+    fn from(err: Box<dyn std::error::Error>) -> Self {
+        StoreError::Other(err)
+    }
+}
 
 pub struct StorageOptions {
     /* WAL file options */
@@ -31,7 +64,7 @@ pub struct Storage<'a> {
 }
 
 impl<'a> Storage<'a> {
-    pub fn new(options: &'a StorageOptions) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(options: &'a StorageOptions) -> Result<Self, StoreError> {
         let wal_manager = WalManager::new(&options.wal_options)?;
         let sst_manager = SSTManager::new(&options.sst_options);
 
@@ -48,7 +81,7 @@ impl<'a> Storage<'a> {
         })
     }
 
-    pub fn put(&mut self, key: String, value: String) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn put(&mut self, key: String, value: String) -> Result<(), StoreError> {
         let current_index = self.index;
         self.index += 1;
 
@@ -72,7 +105,7 @@ impl<'a> Storage<'a> {
         String::from_utf8(val).ok()
     }
 
-    pub fn delete(&mut self, key: String) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn delete(&mut self, key: String) -> Result<(), StoreError> {
         let current_index = self.index;
         self.index += 1;
 
@@ -91,7 +124,7 @@ impl<'a> Storage<'a> {
         Ok(())
     }
 
-    pub fn flush(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn flush(&mut self) -> Result<(), StoreError> {
         let old_sst = std::mem::replace(&mut self.mem_table, Box::new(BTreeMemTable::new()));
         self.mem_table = Box::new(BTreeMemTable::new());
 

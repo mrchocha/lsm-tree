@@ -1,5 +1,10 @@
+use std::{
+    fs::File,
+    io::{self, BufReader, Read},
+};
+
 use crate::{
-    bytes_reader::{ByteReader, ByteReaderError},
+    bytes_reader::{BufferByteReader, ByteReader, ByteReaderError},
     types::KeyValue,
 };
 
@@ -7,11 +12,25 @@ use crate::{
 pub enum WalError {
     InvalidOperationType(u8),
     ByteReaderError(ByteReaderError),
+    IoError(io::Error),
+    Message(String),
 }
 
 impl From<ByteReaderError> for WalError {
     fn from(err: ByteReaderError) -> Self {
         WalError::ByteReaderError(err)
+    }
+}
+
+impl From<io::Error> for WalError {
+    fn from(err: io::Error) -> Self {
+        WalError::IoError(err)
+    }
+}
+
+impl From<&str> for WalError {
+    fn from(err: &str) -> Self {
+        WalError::Message(err.to_string())
     }
 }
 
@@ -63,6 +82,22 @@ impl WalRecord {
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, WalError> {
         let mut breader = ByteReader::new(bytes);
+
+        let term = breader.read_u32()?;
+        let index = breader.read_u32()?;
+        let op_type = OperationTypeEnum::from_u8(breader.read_u8()?)?;
+        let key_val = breader.read_key_val()?;
+
+        Ok(WalRecord {
+            term,
+            index,
+            op_type,
+            key_val,
+        })
+    }
+
+    pub fn from_buffer(buffer: &mut BufReader<File>) -> Result<Self, WalError> {
+        let mut breader = BufferByteReader::new(buffer);
 
         let term = breader.read_u32()?;
         let index = breader.read_u32()?;

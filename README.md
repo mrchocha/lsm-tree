@@ -8,6 +8,7 @@ The goal of this project is to understand how modern storage engines use **WALs,
 
 * [x] WAL persistence
   * [ ] WAL file chunking / rotation
+  * [X] WAL iterator
 * [x] MemTable implementation
   * [x] Btree based
   * [x] Skip list based

@@ -2,7 +2,10 @@ use std::fs;
 
 use crate::{
     storage::StorageOptions,
-    wal::{wal_file::WalFile, wal_record::WalRecord},
+    wal::{
+        wal_file::WalFile,
+        wal_record::{WalError, WalRecord},
+    },
 };
 
 pub struct WalOptions {
@@ -20,7 +23,7 @@ pub struct WalManager<'a> {
 }
 
 impl<'a> WalManager<'a> {
-    pub fn new(options: &'a WalOptions) -> Result<WalManager<'a>, Box<dyn std::error::Error>> {
+    pub fn new(options: &'a WalOptions) -> Result<WalManager<'a>, WalError> {
         let mut file = Self::get_latest_file(options)?;
         if file.is_none() {
             file = Some(WalFile::create(options, 1)?);
@@ -30,13 +33,13 @@ impl<'a> WalManager<'a> {
 
         Ok(WalManager {
             options,
-            max_wal_file_seq_no: wal_file.header.seq_no,
+            max_wal_file_seq_no: wal_file.seq_no,
             current_file: wal_file,
             reusable_files: Vec::new(),
         })
     }
 
-    fn advance_wal_file(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    fn advance_wal_file(&mut self) -> Result<(), WalError> {
         self.max_wal_file_seq_no += 1;
         let file = WalFile::create(self.options, self.max_wal_file_seq_no)?;
 
@@ -45,7 +48,7 @@ impl<'a> WalManager<'a> {
         Ok(())
     }
 
-    pub fn write(&mut self, wal_record: &WalRecord) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn write(&mut self, wal_record: &WalRecord) -> Result<(), WalError> {
         let curr_wal_file_size = self.current_file.get_size()?;
         if curr_wal_file_size as usize >= self.options.max_file_size {
             self.advance_wal_file()?
@@ -56,16 +59,14 @@ impl<'a> WalManager<'a> {
         Ok(())
     }
 
-    fn get_latest_file(
-        options: &WalOptions,
-    ) -> Result<Option<WalFile>, Box<dyn std::error::Error>> {
+    fn get_latest_file(options: &WalOptions) -> Result<Option<WalFile>, WalError> {
         let mut latest_wal_file: Option<WalFile> = None;
         let wal_files: Vec<WalFile> = Self::list_files(options)?;
 
         for wal_file in wal_files {
             if latest_wal_file
                 .as_ref()
-                .is_none_or(|latest| wal_file.header.seq_no > latest.header.seq_no)
+                .is_none_or(|latest| wal_file.seq_no > latest.seq_no)
             {
                 latest_wal_file = Some(wal_file);
             }
@@ -74,11 +75,29 @@ impl<'a> WalManager<'a> {
         Ok(latest_wal_file)
     }
 
+    pub fn get_first_file(
+        options: &WalOptions,
+        after: Option<u32>,
+    ) -> Result<Option<WalFile>, WalError> {
+        let mut first_wal_file: Option<WalFile> = None;
+        let wal_files: Vec<WalFile> = Self::list_files(options)?;
+
+        for wal_file in wal_files {
+            if first_wal_file.as_ref().is_none_or(|latest| {
+                wal_file.seq_no < latest.seq_no && wal_file.seq_no >= after.unwrap_or(0)
+            }) {
+                first_wal_file = Some(wal_file);
+            }
+        }
+
+        Ok(first_wal_file)
+    }
+
     fn read_all(&self) -> Vec<WalRecord> {
         Vec::new()
     }
 
-    fn list_files(options: &WalOptions) -> Result<Vec<WalFile>, Box<dyn std::error::Error>> {
+    fn list_files(options: &WalOptions) -> Result<Vec<WalFile>, WalError> {
         let mut wal_files = Vec::new();
         let path = options.file_path.clone();
 

@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "*.sst": "plaintext",
+    "*.wal": "plaintext"
+  }
+}
