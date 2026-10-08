@@ -17,10 +17,10 @@ pub struct WalManager<'a> {
 }
 
 impl<'a> WalManager<'a> {
-    pub fn new(options: &'a WalOptions) -> Result<WalManager<'a>, WalError> {
-        let mut file = util::get_first_file(options, Some(0))?;
+    pub async fn new(options: &'a WalOptions) -> Result<WalManager<'a>, WalError> {
+        let mut file = util::get_first_file(options, Some(0)).await?;
         if file.is_none() {
-            file = Some(WalFile::create(options, 1)?);
+            file = Some(WalFile::create(options, 1).await?);
         }
 
         let wal_file = file.expect("Wal file not found");
@@ -37,21 +37,21 @@ impl<'a> WalManager<'a> {
         self.current_file.get_size() >= self.options.max_file_size
     }
 
-    fn rotate(&mut self) -> Result<(), WalError> {
+    async fn rotate(&mut self) -> Result<(), WalError> {
         self.max_wal_file_seq_no += 1;
-        let file = WalFile::create(self.options, self.max_wal_file_seq_no)?;
+        let file = WalFile::create(self.options, self.max_wal_file_seq_no).await?;
 
         self.current_file = file;
 
         Ok(())
     }
 
-    pub fn write(&mut self, wal_record: &WalRecord) -> Result<(), WalError> {
+    pub async fn write(&mut self, wal_record: &WalRecord) -> Result<(), WalError> {
         if self.should_rotate() {
-            self.rotate()?
+            self.rotate().await?
         }
 
-        self.current_file.append(wal_record)?;
+        self.current_file.append(wal_record).await?;
 
         Ok(())
     }

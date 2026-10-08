@@ -1,13 +1,10 @@
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::io::BufWriter;
-use std::io::Write;
-use std::io::{BufReader, Read};
-use std::io::{Seek, SeekFrom};
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::Arc;
-use std::sync::Mutex;
+use tokio::fs::File;
+use tokio::fs::OpenOptions;
+use tokio::io::AsyncReadExt;
+use tokio::io::BufReader;
+use tokio::io::{AsyncWriteExt, BufWriter};
 
 use crate::error::WalError;
 use crate::manager::WalOptions;
@@ -24,7 +21,7 @@ pub struct WalFile {
 }
 
 impl WalFile {
-    pub fn create(options: &WalOptions, seq_no: u32) -> Result<Self, WalError> {
+    pub async fn create(options: &WalOptions, seq_no: u32) -> Result<Self, WalError> {
         let name: String = format!("{:020}.wal", seq_no);
         let path = PathBuf::from(options.file_path.clone()).join(&name);
 
@@ -32,12 +29,13 @@ impl WalFile {
             .read(true)
             .append(true)
             .create(true)
-            .open(&path)?;
+            .open(&path)
+            .await?;
 
         let mut writer = BufWriter::new(file);
 
-        writer.write_all(&seq_no.to_be_bytes())?;
-        writer.flush()?;
+        writer.write_all(&seq_no.to_be_bytes()).await?;
+        writer.flush().await?;
 
         Ok(Self {
             name,
@@ -49,21 +47,25 @@ impl WalFile {
         })
     }
 
-    pub fn from_path(str_path: &str) -> Result<Self, WalError> {
+    pub async fn from_path(str_path: &str) -> Result<Self, WalError> {
         let path = Path::new(str_path);
 
-        let file = OpenOptions::new().read(true).append(true).open(path)?;
+        let file = OpenOptions::new()
+            .read(true)
+            .append(true)
+            .open(path)
+            .await?;
 
-        let reader_file = file.try_clone()?;
-        let mut reader = BufReader::new(&reader_file);
+        let reader_file = file.try_clone().await?;
+        let mut reader = BufReader::new(reader_file);
 
         let writer = BufWriter::new(file);
 
-        let metadata = writer.get_ref().metadata()?;
+        let metadata = writer.get_ref().metadata().await?;
         let file_size = metadata.len() as usize;
 
         let mut buffer = [0u8; 4];
-        reader.read_exact(&mut buffer)?;
+        reader.read_exact(&mut buffer).await?;
 
         let seq_no = u32::from_be_bytes(buffer);
 
@@ -88,13 +90,13 @@ impl WalFile {
         self.size
     }
 
-    pub fn get_file_fd(&self) -> Result<File, WalError> {
-        Ok(self.file_writer.get_ref().try_clone()?)
+    pub async fn get_file_fd(&self) -> Result<File, WalError> {
+        Ok(self.file_writer.get_ref().try_clone().await?)
     }
 
-    pub fn append(&mut self, wal_record: &WalRecord) -> Result<(), WalError> {
+    pub async fn append(&mut self, wal_record: &WalRecord) -> Result<(), WalError> {
         let bytes = wal_record.to_bytes();
-        self.file_writer.write_all(&bytes)?;
+        self.file_writer.write_all(&bytes).await?;
         self.size += bytes.len();
         Ok(())
     }

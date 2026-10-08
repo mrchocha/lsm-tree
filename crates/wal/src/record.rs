@@ -1,7 +1,7 @@
-use std::{fs::File, io::BufReader};
+use tokio::{fs::File, io::BufReader};
 
 use common::{
-    bytes_reader::{BufferByteReader, ByteReader},
+    bytes_reader::{BufferByteAsyncReader, ByteReader},
     types::KeyValue,
 };
 
@@ -87,16 +87,16 @@ impl WalRecord {
         Ok(wal_record)
     }
 
-    pub fn from_buffer(buffer: &mut BufReader<File>) -> Result<Self, WalError> {
-        let mut breader = BufferByteReader::new(buffer);
+    pub async fn from_buffer(buffer: &mut BufReader<File>) -> Result<Self, WalError> {
+        let mut breader = BufferByteAsyncReader::new(buffer);
 
-        let size = breader.read_usize()?;
-        let crc32 = breader.read_u32()?;
+        let size = breader.read_usize().await?;
+        let crc32 = breader.read_u32().await?;
 
-        let term = breader.read_u32()?;
-        let index = breader.read_u32()?;
-        let op_type = OperationTypeEnum::from_u8(breader.read_u8()?)?;
-        let key_val = breader.read_key_val()?;
+        let term = breader.read_u32().await?;
+        let index = breader.read_u32().await?;
+        let op_type = OperationTypeEnum::from_u8(breader.read_u8().await?)?;
+        let key_val = breader.read_key_val().await?;
 
         let wal_record = WalRecord {
             term,

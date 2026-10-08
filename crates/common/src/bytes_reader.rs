@@ -1,4 +1,4 @@
-use std::io::{self, Read};
+use tokio::io::{self, AsyncRead, AsyncReadExt};
 
 use crate::types::KeyValue;
 
@@ -147,55 +147,55 @@ impl<'a> ByteReader<'a> {
     }
 }
 
-pub struct BufferByteReader<R> {
+pub struct BufferByteAsyncReader<R> {
     reader: R,
 }
 
-impl<R: Read> BufferByteReader<R> {
+impl<R: AsyncRead + Unpin> BufferByteAsyncReader<R> {
     pub fn new(reader: R) -> Self {
         Self { reader }
     }
 
-    pub fn read_u32(&mut self) -> Result<u32, ByteReaderError> {
+    pub async fn read_u32(&mut self) -> Result<u32, ByteReaderError> {
         let mut buf = [0u8; 4];
 
-        self.reader.read_exact(&mut buf)?;
+        self.reader.read_exact(&mut buf).await?;
 
         Ok(u32::from_be_bytes(buf))
     }
 
-    pub fn read_u8(&mut self) -> Result<u8, ByteReaderError> {
+    pub async fn read_u8(&mut self) -> Result<u8, ByteReaderError> {
         let mut buf = [0u8; 1];
 
-        self.reader.read_exact(&mut buf)?;
+        self.reader.read_exact(&mut buf).await?;
 
         Ok(buf[0])
     }
 
-    pub fn read_usize(&mut self) -> Result<usize, ByteReaderError> {
+    pub async fn read_usize(&mut self) -> Result<usize, ByteReaderError> {
         let mut buf = [0u8; 8];
 
-        self.reader.read_exact(&mut buf)?;
+        self.reader.read_exact(&mut buf).await?;
 
         Ok(usize::from_be_bytes(buf))
     }
 
-    pub fn read_bytes_vec(&mut self, len: usize) -> Result<Vec<u8>, ByteReaderError> {
+    pub async fn read_bytes_vec(&mut self, len: usize) -> Result<Vec<u8>, ByteReaderError> {
         let mut buf = vec![0u8; len];
 
-        self.reader.read_exact(&mut buf)?;
+        self.reader.read_exact(&mut buf).await?;
 
         Ok(buf.to_vec())
     }
 
-    pub fn read_key_val(&mut self) -> Result<KeyValue, ByteReaderError> {
-        let key_len = self.read_usize()?;
-        let key = self.read_bytes_vec(key_len)?;
+    pub async fn read_key_val(&mut self) -> Result<KeyValue, ByteReaderError> {
+        let key_len = self.read_usize().await?;
+        let key = self.read_bytes_vec(key_len).await?;
 
-        let val_len = self.read_usize()?;
+        let val_len = self.read_usize().await?;
         let mut value: Option<Vec<u8>> = None;
         if val_len > 0 {
-            value = Some(self.read_bytes_vec(val_len)?);
+            value = Some(self.read_bytes_vec(val_len).await?);
         }
 
         Ok(KeyValue { key, value })

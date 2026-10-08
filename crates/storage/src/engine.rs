@@ -1,6 +1,4 @@
-use std::io;
-
-use wal::error::WalError;
+use crate::error::StoreError;
 
 use {
     common::types::KeyValue,
@@ -12,37 +10,6 @@ use {
 };
 
 use sst::manager::{SSTManager, SSTOptions};
-
-#[derive(Debug)]
-pub enum StoreError {
-    WalError(WalError),
-    IoError(io::Error),
-    Message(String),
-    Other(Box<dyn std::error::Error>),
-}
-
-impl From<WalError> for StoreError {
-    fn from(err: WalError) -> Self {
-        StoreError::WalError(err)
-    }
-}
-
-impl From<io::Error> for StoreError {
-    fn from(err: io::Error) -> Self {
-        StoreError::IoError(err)
-    }
-}
-
-impl From<&str> for StoreError {
-    fn from(err: &str) -> Self {
-        StoreError::Message(err.to_string())
-    }
-}
-impl From<Box<dyn std::error::Error>> for StoreError {
-    fn from(err: Box<dyn std::error::Error>) -> Self {
-        StoreError::Other(err)
-    }
-}
 
 pub struct StorageOptions {
     /* WAL file options */
@@ -67,8 +34,8 @@ pub struct Storage<'a> {
 }
 
 impl<'a> Storage<'a> {
-    pub fn new(options: &'a StorageOptions) -> Result<Self, StoreError> {
-        let wal_manager = WalManager::new(&options.wal_options)?;
+    pub async fn new(options: &'a StorageOptions) -> Result<Self, StoreError> {
+        let wal_manager = WalManager::new(&options.wal_options).await?;
         let sst_manager = SSTManager::new(&options.sst_options);
 
         let mem_table = Box::new(BTreeMemTable::new());
@@ -84,19 +51,21 @@ impl<'a> Storage<'a> {
         })
     }
 
-    pub fn put(&mut self, key: String, value: String) -> Result<(), StoreError> {
+    pub async fn put(&mut self, key: String, value: String) -> Result<(), StoreError> {
         let current_index = self.index;
         self.index += 1;
 
-        self.wal_manager.write(&WalRecord {
-            term: self.term,
-            index: current_index,
-            op_type: OperationTypeEnum::INSERT,
-            key_val: KeyValue {
-                key: key.clone().into_bytes(),
-                value: Some(value.clone().into_bytes()),
-            },
-        })?;
+        self.wal_manager
+            .write(&WalRecord {
+                term: self.term,
+                index: current_index,
+                op_type: OperationTypeEnum::INSERT,
+                key_val: KeyValue {
+                    key: key.clone().into_bytes(),
+                    value: Some(value.clone().into_bytes()),
+                },
+            })
+            .await?;
 
         self.mem_table.put(key.into_bytes(), value.into_bytes());
 
@@ -108,21 +77,23 @@ impl<'a> Storage<'a> {
         String::from_utf8(val).ok()
     }
 
-    pub fn delete(&mut self, key: String) -> Result<(), StoreError> {
+    pub async fn delete(&mut self, key: String) -> Result<(), StoreError> {
         let current_index = self.index;
         self.index += 1;
 
         self.mem_table.delete(key.as_bytes());
 
-        self.wal_manager.write(&WalRecord {
-            term: self.term,
-            index: current_index,
-            op_type: OperationTypeEnum::DELETE,
-            key_val: KeyValue {
-                key: key.into_bytes(),
-                value: None,
-            },
-        })?;
+        self.wal_manager
+            .write(&WalRecord {
+                term: self.term,
+                index: current_index,
+                op_type: OperationTypeEnum::DELETE,
+                key_val: KeyValue {
+                    key: key.into_bytes(),
+                    value: None,
+                },
+            })
+            .await?;
 
         Ok(())
     }
