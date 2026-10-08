@@ -1,6 +1,6 @@
-# LSM Tree (WIP)
+# Tecton (WIP)
 
-A **Log-Structured Merge (LSM) Tree implementation in Rust**, built while studying LSM Trees and their underlying storage concepts.
+A **Log-Structured Merge (LSM) Tree based storage engine written in Rust.**, built while studying LSM Trees and their underlying storage concepts.
 
 The goal of this project is to understand how modern storage engines use **WALs, MemTables, Bloom Filters, SSTables, and compaction** to efficiently handle writes and persistent storage.
 
@@ -8,7 +8,7 @@ The goal of this project is to understand how modern storage engines use **WALs,
 
 * [x] WAL persistence
   * [x] chunking 
-  * [] rotation
+  * [ ] rotation
   * [X] iterator
 * [x] MemTable implementation
   * [x] Btree based
