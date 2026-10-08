@@ -1,13 +1,14 @@
 [workspace]
 members = [
-    "crates/common", 
+    "crates/common",
     "crates/mem-table",
-    "crates/sst", "crates/storage",
+    "crates/sst",
+    "crates/storage",
     "crates/wal",
 ]
 
 [package]
-name = "lsm-tree"
+name = "tecton"
 version = "0.1.0"
 edition = "2024"
 

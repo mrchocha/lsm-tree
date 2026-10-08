@@ -80,18 +80,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lsm-tree"
-version = "0.1.0"
-dependencies = [
- "common",
- "mem-table",
- "sst",
- "storage",
- "tokio",
- "wal",
-]
-
-[[package]]
 name = "mem-table"
 version = "0.1.0"
 dependencies = [
@@ -281,6 +269,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tecton"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "mem-table",
+ "sst",
+ "storage",
+ "tokio",
+ "wal",
 ]
 
 [[package]]
