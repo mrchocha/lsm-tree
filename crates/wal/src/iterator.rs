@@ -1,12 +1,10 @@
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-};
+use std::{fs::File, io::BufReader};
 
-use crate::wal::{
-    wal_file::WalFile,
-    wal_manager::{WalManager, WalOptions},
-    wal_record::{WalError, WalRecord},
+use crate::{
+    error::WalError,
+    file::WalFile,
+    manager::{WalManager, WalOptions},
+    record::WalRecord,
 };
 
 pub struct WalIterator<'a> {

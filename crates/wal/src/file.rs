@@ -1,6 +1,3 @@
-use crate::wal::wal_manager::WalOptions;
-use crate::wal::wal_record::WalError;
-use crate::wal::wal_record::WalRecord;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -8,6 +5,10 @@ use std::io::{BufReader, Read};
 use std::io::{Seek, SeekFrom};
 use std::path::Path;
 use std::path::PathBuf;
+
+use crate::error::WalError;
+use crate::manager::WalOptions;
+use crate::record::WalRecord;
 
 pub struct WalFile {
     pub seq_no: u32,
@@ -88,9 +89,7 @@ impl WalFile {
     }
 
     pub fn append(&mut self, wal_record: &WalRecord) -> Result<(), WalError> {
-        self.file.lock();
         self.file.write_all(&wal_record.to_bytes())?;
-        self.file.unlock();
         Ok(())
     }
 

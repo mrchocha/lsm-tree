@@ -1,19 +1,18 @@
 use crate::{
     sst::sst_manager::SSTOptions,
     storage::{Storage, StorageOptions},
-    wal::wal_manager::WalOptions,
 };
 
-mod bytes_reader;
+use common::{bytes_reader, types};
+use wal;
+
 mod mem_table;
 mod sst;
 mod storage;
-mod types;
-mod wal;
 
 fn main() {
     let options = &StorageOptions {
-        wal_options: WalOptions {
+        wal_options: wal::manager::WalOptions {
             file_path: "./data/wal".to_string(),
             max_file_size: 4069,
         },

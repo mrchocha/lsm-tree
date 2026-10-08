@@ -1,9 +1,16 @@
+[workspace]
+members = [
+    "crates/common",
+    "crates/wal",
+]
+
 [package]
 name = "lsm-tree"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-crc = "3.2.1"
 xxhash-rust = { version = "0.8", features = ["xxh64"] }
 rand = "0.9"
+wal = { path = "crates/wal" }
+common = { path = "crates/common" }

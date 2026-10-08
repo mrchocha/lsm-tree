@@ -9,6 +9,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
+name = "common"
+version = "0.1.0"
+
+[[package]]
 name = "crc"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -45,8 +49,9 @@ checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
 name = "lsm-tree"
 version = "0.1.0"
 dependencies = [
- "crc",
+ "common",
  "rand",
+ "wal",
  "xxhash-rust",
 ]
 
@@ -128,6 +133,14 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "wal"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "crc",
+]
 
 [[package]]
 name = "wasip2"

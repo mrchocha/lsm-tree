@@ -1,12 +1,6 @@
 use std::fs;
 
-use crate::{
-    storage::StorageOptions,
-    wal::{
-        wal_file::WalFile,
-        wal_record::{WalError, WalRecord},
-    },
-};
+use crate::{error::WalError, file::WalFile, record::WalRecord};
 
 pub struct WalOptions {
     pub file_path: String,

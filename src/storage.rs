@@ -1,12 +1,14 @@
 use std::io;
 
+use wal::error::WalError;
+
 use crate::{
     mem_table::{MemTable, btree_mem_table::BTreeMemTable},
-    sst::sst_manager::{self, SSTManager, SSTOptions},
+    sst::sst_manager::{SSTManager, SSTOptions},
     types::KeyValue,
     wal::{
-        wal_manager::{WalManager, WalOptions},
-        wal_record::{OperationTypeEnum, WalError, WalRecord},
+        manager::{WalManager, WalOptions},
+        record::{OperationTypeEnum, WalRecord},
     },
 };
 
