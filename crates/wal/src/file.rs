@@ -1,10 +1,13 @@
 use std::fs::File;
 use std::fs::OpenOptions;
+use std::io::BufWriter;
 use std::io::Write;
 use std::io::{BufReader, Read};
 use std::io::{Seek, SeekFrom};
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use crate::error::WalError;
 use crate::manager::WalOptions;
@@ -15,7 +18,9 @@ pub struct WalFile {
     pub name: String,
     pub path: PathBuf,
 
-    file: File,
+    file_writer: BufWriter<File>,
+    size: usize,
+    buffer: Vec<u8>,
 }
 
 impl WalFile {
@@ -29,13 +34,18 @@ impl WalFile {
             .create(true)
             .open(&path)?;
 
-        file.write_all(&seq_no.to_be_bytes())?;
+        let mut writer = BufWriter::new(file);
+
+        writer.write_all(&seq_no.to_be_bytes())?;
+        writer.flush()?;
 
         Ok(Self {
             name,
             path,
             seq_no,
-            file,
+            file_writer: writer,
+            size: 4, // with seq no
+            buffer: Vec::new(),
         })
     }
 
@@ -44,7 +54,13 @@ impl WalFile {
 
         let file = OpenOptions::new().read(true).append(true).open(path)?;
 
-        let mut reader = BufReader::new(&file);
+        let reader_file = file.try_clone()?;
+        let mut reader = BufReader::new(&reader_file);
+
+        let writer = BufWriter::new(file);
+
+        let metadata = writer.get_ref().metadata()?;
+        let file_size = metadata.len() as usize;
 
         let mut buffer = [0u8; 4];
         reader.read_exact(&mut buffer)?;
@@ -62,34 +78,25 @@ impl WalFile {
             name,
             path: path.to_path_buf(),
             seq_no,
-            file,
+            file_writer: writer,
+            buffer: Vec::new(),
+            size: file_size,
         })
     }
 
-    pub fn get_size(&self) -> Result<u64, WalError> {
-        let metadata = self.file.metadata()?;
-        let file_size = metadata.len();
-
-        Ok(file_size)
+    pub fn get_size(&self) -> usize {
+        self.size
     }
 
-    pub fn reset(&mut self, seq_no: u32) -> Result<(), WalError> {
-        self.file.set_len(0)?;
-
-        self.file.seek(SeekFrom::Start(0))?;
-
-        self.file.write_all(&seq_no.to_be_bytes())?;
-
-        Ok(())
+    pub fn get_file_fd(&self) -> Result<File, WalError> {
+        Ok(self.file_writer.get_ref().try_clone()?)
     }
 
     pub fn append(&mut self, wal_record: &WalRecord) -> Result<(), WalError> {
-        self.file.write_all(&wal_record.to_bytes())?;
+        let bytes = wal_record.to_bytes();
+        self.file_writer.write_all(&bytes)?;
+        self.size += bytes.len();
         Ok(())
-    }
-
-    pub fn get_file_fd(&self) -> File {
-        self.file.try_clone().unwrap()
     }
 }
 
