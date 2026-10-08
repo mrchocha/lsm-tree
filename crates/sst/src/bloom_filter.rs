@@ -1,6 +1,6 @@
 use xxhash_rust::xxh64::xxh64;
 
-use crate::bytes_reader::{ByteReader, ByteReaderError};
+use common::bytes_reader::{ByteReader, ByteReaderError};
 pub struct BloomFilter {
     bit_size: u64,
     num_hash: u64,
@@ -14,7 +14,7 @@ impl BloomFilter {
 
         let num_hash = ((bit_size as f64 / num_elems as f64) * ln2).ceil() as u64;
 
-        let bit_arr = vec![0u8; (bit_size as usize + 7) / 8];
+        let bit_arr = vec![0u8; (bit_size as usize).div_ceil(8)];
 
         BloomFilter {
             bit_arr,
@@ -53,13 +53,13 @@ impl BloomFilter {
             let byte_index = (index / 8) as usize;
             let bit_offset = index % 8;
 
-            if let Some(data) = self.bit_arr.get(byte_index as usize)
+            if let Some(data) = self.bit_arr.get(byte_index)
                 && *data & (1 << bit_offset) == 0
             {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {

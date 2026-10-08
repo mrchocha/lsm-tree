@@ -1,5 +1,5 @@
-pub(crate) mod btree_mem_table;
-pub(crate) mod skip_list_mem_table;
+pub mod btree_mem_table;
+pub mod skip_list_mem_table;
 
 pub trait MemTable {
     fn put(&mut self, key: Vec<u8>, value: Vec<u8>);

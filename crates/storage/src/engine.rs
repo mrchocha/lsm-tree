@@ -2,15 +2,16 @@ use std::io;
 
 use wal::error::WalError;
 
-use crate::{
+use {
+    common::types::KeyValue,
     mem_table::{MemTable, btree_mem_table::BTreeMemTable},
-    sst::sst_manager::{SSTManager, SSTOptions},
-    types::KeyValue,
     wal::{
         manager::{WalManager, WalOptions},
         record::{OperationTypeEnum, WalRecord},
     },
 };
+
+use sst::manager::{SSTManager, SSTOptions};
 
 #[derive(Debug)]
 pub enum StoreError {

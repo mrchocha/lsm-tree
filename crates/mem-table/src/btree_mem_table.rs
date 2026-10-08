@@ -1,10 +1,16 @@
 use std::{collections::BTreeMap, sync::RwLock};
 
-use crate::mem_table::MemTable;
+use crate::MemTable;
 
 pub struct BTreeMemTable {
     store: RwLock<BTreeMap<Vec<u8>, Option<Vec<u8>>>>,
     bytes_size: usize,
+}
+
+impl Default for BTreeMemTable {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl BTreeMemTable {
@@ -21,10 +27,10 @@ impl MemTable for BTreeMemTable {
         let mut store = self.store.write().unwrap();
 
         self.bytes_size += key.len() + value.len();
-        if let Some(prv_val) = store.insert(key, Some(value)) {
-            if let Some(non_empty_val) = prv_val {
-                self.bytes_size -= non_empty_val.len()
-            }
+        if let Some(prv_val) = store.insert(key, Some(value))
+            && let Some(non_empty_val) = prv_val
+        {
+            self.bytes_size -= non_empty_val.len()
         }
     }
 
@@ -39,10 +45,10 @@ impl MemTable for BTreeMemTable {
     fn delete(&mut self, key: &[u8]) {
         let mut store = self.store.write().unwrap();
 
-        if let Some(prv_val) = store.insert(key.to_vec(), None) {
-            if let Some(non_empty_val) = prv_val {
-                self.bytes_size -= non_empty_val.len()
-            }
+        if let Some(prv_val) = store.insert(key.to_vec(), None)
+            && let Some(non_empty_val) = prv_val
+        {
+            self.bytes_size -= non_empty_val.len()
         }
     }
 

@@ -1,11 +1,13 @@
 use std::{fs::OpenOptions, io::Write, path::PathBuf};
 
-use crate::{
+use crate::block_builder::SSTBlock;
+use crate::bloom_filter::BloomFilter;
+use crate::manager::SSTOptions;
+use common::{
     bytes_reader::{ByteReader, ByteReaderError, FooterByteReader},
-    mem_table::MemTable,
-    sst::{block_builder::SSTBlock, bloom_filter::BloomFilter, sst_manager::SSTOptions},
     types::KeyValue,
 };
+use mem_table::MemTable;
 
 /*
 SSTable Structure
@@ -85,7 +87,7 @@ impl SSTBuilder {
         let mut block_indices = Vec::new();
         let mut blocks = Vec::new();
 
-        let mut prv_block_index = 0 as usize;
+        let mut prv_block_index = 0_usize;
 
         while !index_btreader.is_finished() {
             let block_index = index_btreader.read_u32()? as usize;
@@ -113,13 +115,9 @@ impl SSTBuilder {
         let file_name = format!("{:020}.sst", self.seq_no);
         let path = PathBuf::from(options.file_path.clone()).join(&file_name);
 
-        let mut file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .append(true)
-            .open(path)?;
+        let mut file = OpenOptions::new().create(true).append(true).open(path)?;
 
-        let mut index = 0 as usize;
+        let mut index = 0_usize;
 
         let mut block_indices: Vec<[u8; 8]> = Vec::new();
         let mut sst_indices: Vec<[u8; 8]> = Vec::new();

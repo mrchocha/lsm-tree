@@ -98,7 +98,7 @@ impl<'a> WalManager<'a> {
         for entry in fs::read_dir(path)? {
             let path = entry?.path();
 
-            if !path.extension().is_some_and(|ext| ext == "wal") {
+            if path.extension().is_none_or(|ext| ext != "wal") {
                 continue;
             }
 

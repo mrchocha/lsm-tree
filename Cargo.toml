@@ -1,6 +1,8 @@
 [workspace]
 members = [
-    "crates/common",
+    "crates/common", 
+    "crates/mem-table",
+    "crates/sst", "crates/storage",
     "crates/wal",
 ]
 
@@ -10,7 +12,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-xxhash-rust = { version = "0.8", features = ["xxh64"] }
-rand = "0.9"
 wal = { path = "crates/wal" }
 common = { path = "crates/common" }
+sst = { path = "crates/sst" }
+mem-table = { path = "crates/mem-table" }
+storage = { path = "crates/storage" }

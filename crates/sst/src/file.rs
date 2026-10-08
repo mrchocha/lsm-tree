@@ -9,11 +9,7 @@ impl SSTFile {
     pub fn from_path(str_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let path = Path::new(str_path);
 
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .append(true)
-            .open(path)?;
+        let file = OpenOptions::new().read(true).append(true).open(path)?;
 
         let mut reader = BufReader::new(&file);
 

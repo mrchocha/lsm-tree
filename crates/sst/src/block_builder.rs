@@ -1,4 +1,4 @@
-use crate::{
+use common::{
     bytes_reader::{ByteReader, ByteReaderError},
     types::KeyValue,
 };
@@ -27,6 +27,12 @@ pub struct SSTBlock {
     num_records: u32,
 }
 
+impl Default for SSTBlock {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SSTBlock {
     pub fn new() -> Self {
         SSTBlock {
@@ -43,7 +49,7 @@ impl SSTBlock {
 
     pub fn add(&mut self, key_val: &KeyValue) -> bool {
         let key_val_binaries = key_val.to_bytes();
-        let should_restart = self.num_records % RESTART_INTERVAL == 0;
+        let should_restart = self.num_records.is_multiple_of(RESTART_INTERVAL);
 
         let new_length = self.size() + key_val_binaries.len() + (should_restart as usize) * 4;
 
@@ -61,7 +67,7 @@ impl SSTBlock {
         self.binaries.extend_from_slice(&key_val_binaries);
         self.num_records += 1;
 
-        return true;
+        true
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {

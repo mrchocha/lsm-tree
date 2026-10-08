@@ -1,9 +1,8 @@
 use std::fs;
 
-use crate::{
-    mem_table::MemTable,
-    sst::{sst_builder::SSTBuilder, sst_file::SSTFile},
-};
+use crate::{builder::SSTBuilder, file::SSTFile};
+
+use mem_table::MemTable;
 
 pub struct SSTOptions {
     pub file_path: String,
@@ -18,10 +17,10 @@ pub struct SSTManager<'a> {
 
 impl<'a> SSTManager<'a> {
     pub fn new(options: &'a SSTOptions) -> Self {
-        return Self {
+        Self {
             options,
             max_seq_no: 0,
-        };
+        }
     }
 
     pub fn flush(
@@ -43,7 +42,7 @@ impl<'a> SSTManager<'a> {
         for entry in fs::read_dir(path)? {
             let path = entry?.path();
 
-            if !path.extension().is_some_and(|ext| ext == "sst") {
+            if path.extension().is_none_or(|ext| ext != "sst") {
                 continue;
             }
 
@@ -64,9 +63,9 @@ mod tests {
 
     use std::assert_eq;
 
-    use crate::{
+    use {
+        crate::manager::{SSTManager, SSTOptions},
         mem_table::{MemTable, btree_mem_table::BTreeMemTable},
-        sst::sst_manager::{self, SSTManager, SSTOptions},
     };
 
     #[test]

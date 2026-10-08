@@ -1,7 +1,7 @@
 use std::{fs::File, io::BufReader};
 
 use common::{
-    bytes_reader::{BufferByteReader, ByteReader, ByteReaderError},
+    bytes_reader::{BufferByteReader, ByteReader},
     types::KeyValue,
 };
 
@@ -48,7 +48,7 @@ impl WalRecord {
 
     pub fn checksum(bytes: &[u8]) -> u32 {
         let crc = crc::Crc::<u32>::new(&crc::CRC_32_ISCSI);
-        let checksum: u32 = crc.checksum(&bytes);
+        let checksum: u32 = crc.checksum(bytes);
 
         checksum
     }

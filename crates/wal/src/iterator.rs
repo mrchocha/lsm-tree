@@ -41,21 +41,20 @@ impl<'a> WalIterator<'a> {
             return Ok(true);
         }
 
-        if self.offset >= size {
-            if let Some(next_file) =
+        if self.offset >= size
+            && let Some(next_file) =
                 WalManager::get_first_file(self.options, Some(self.seq_no + 1))?
-            {
-                self.file = next_file;
-                self.seq_no = self.file.seq_no;
-                self.offset = 0;
-                self.reader = BufReader::new(self.file.get_file_fd());
-                self.reader.seek_relative(4)?;
+        {
+            self.file = next_file;
+            self.seq_no = self.file.seq_no;
+            self.offset = 0;
+            self.reader = BufReader::new(self.file.get_file_fd());
+            self.reader.seek_relative(4)?;
 
-                return Ok(true);
-            }
+            return Ok(true);
         }
 
-        return Ok(false);
+        Ok(false)
     }
 
     pub fn next(&mut self) -> Result<Option<WalRecord>, WalError> {
@@ -65,6 +64,6 @@ impl<'a> WalIterator<'a> {
 
         let wal_record = WalRecord::from_buffer(&mut self.reader)?;
 
-        return Ok(Some(wal_record));
+        Ok(Some(wal_record))
     }
 }

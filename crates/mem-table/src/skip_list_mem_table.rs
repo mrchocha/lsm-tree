@@ -1,4 +1,4 @@
-use crate::mem_table::MemTable;
+use crate::MemTable;
 use std::{cmp::Ordering, vec};
 
 const MAX_HEIGHT: usize = 20;
@@ -16,6 +16,12 @@ pub struct SkipListMemTable {
 
     total_keys: usize,
     total_bytes_size: usize,
+}
+
+impl Default for SkipListMemTable {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SkipListMemTable {
@@ -182,16 +188,16 @@ impl MemTable for SkipListMemTable {
     }
 
     fn delete(&mut self, key: &[u8]) {
-        if let Some(node_idx) = self.get_node_idx_by_key(key) {
-            if let Some(node) = self.nodes.get_mut(node_idx) {
-                self.total_bytes_size -= node.value.as_ref().map_or(0, Vec::len);
-                node.value = None;
-            }
+        if let Some(node_idx) = self.get_node_idx_by_key(key)
+            && let Some(node) = self.nodes.get_mut(node_idx)
+        {
+            self.total_bytes_size -= node.value.as_ref().map_or(0, Vec::len);
+            node.value = None;
         }
     }
 
     fn size(&self) -> usize {
-        return self.total_keys;
+        self.total_keys
     }
 
     fn get_all_keys(&self) -> Vec<(Vec<u8>, Option<Vec<u8>>)> {

@@ -25,7 +25,6 @@ impl WalFile {
 
         let mut file = OpenOptions::new()
             .read(true)
-            .write(true)
             .append(true)
             .create(true)
             .open(&path)?;
@@ -43,11 +42,7 @@ impl WalFile {
     pub fn from_path(str_path: &str) -> Result<Self, WalError> {
         let path = Path::new(str_path);
 
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .append(true)
-            .open(path)?;
+        let file = OpenOptions::new().read(true).append(true).open(path)?;
 
         let mut reader = BufReader::new(&file);
 
